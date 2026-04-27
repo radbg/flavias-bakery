@@ -1,0 +1,24 @@
+{
+  "name": "Flavia's Bakery",
+  "short_name": "Flavia's",
+  "description": "Gestión de ventas y productos para Flavia's Bakery",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#E8E5F3",
+  "theme_color": "#5F56AF",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}
