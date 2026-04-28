@@ -41,7 +41,7 @@ FB.History = (function() {
         (selectMode ? '<div class="row-checkbox">' + (isSelected ? '✓' : '') + '</div>' : '') +
         '<div class="sale-row-main">' +
           '<div class="sale-date-col">' +
-            '<span class="sale-date">' + dateStr + (sale.time ? ' · ' + sale.time : '') + discBadge + '</span>' +
+            '<span class="sale-date">' + dateStr + (sale.time ? ' · ' + FB.Calc.fmt12h(sale.time) : '') + discBadge + '</span>' +
             '<span class="sale-items-count">' + itemCount + ' productos</span>' +
           '</div>' +
           '<div class="sale-amounts">' +
@@ -139,7 +139,7 @@ FB.History = (function() {
 
     var dateObj = new Date(sale.date + 'T00:00:00');
     var dateStr = dateObj.toLocaleDateString('es-ES', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
-    var timeStr = sale.time ? ' a las ' + sale.time : '';
+    var timeStr = sale.time ? ' a las ' + FB.Calc.fmt12h(sale.time) : '';
 
     var html =
       '<h3 class="modal-title">' + dateStr + timeStr + '</h3>' +

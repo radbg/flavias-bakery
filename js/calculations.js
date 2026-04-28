@@ -7,6 +7,15 @@ FB.Calc = (function() {
   return {
     margin: function(cost, price) { return price ? ((price - cost) / price) * 100 : 0; },
     fmt:    function(n) { return '$' + Number(n || 0).toFixed(2); },
+    fmt12h: function(timeStr) {
+      if (!timeStr) return '';
+      var parts = timeStr.split(':');
+      var h = parseInt(parts[0], 10);
+      var m = parts[1];
+      var ampm = h < 12 ? 'AM' : 'PM';
+      var h12 = h % 12 || 12;
+      return h12 + ':' + m + ' ' + ampm;
+    },
     fmtPct: function(n) { return Number(n || 0).toFixed(1) + '%'; },
     today:  function() { return new Date().toISOString().slice(0, 10); },
     monthKey:    function(dateStr) { return String(dateStr).slice(0, 7); },
