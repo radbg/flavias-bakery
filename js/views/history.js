@@ -2,7 +2,9 @@ var FB = window.FB || {};
 
 FB.History = (function() {
   var currentMonth = FB.Calc.monthKey(new Date().toISOString().slice(0, 10));
-  var _navigate = null;
+  var _navigate    = null;
+  var selectMode   = false;
+  var selected     = {};
 
   function refresh() {
     var label = document.getElementById('hist-month-label');
@@ -12,7 +14,6 @@ FB.History = (function() {
     var sales = FB.Storage.getSales()
       .filter(function(s) { return s.date.startsWith(currentMonth); })
       .sort(function(a, b) {
-        // ordenar por fecha + hora descendente
         var aKey = a.date + 'T' + (a.time || '00:00');
         var bKey = b.date + 'T' + (b.time || '00:00');
         return bKey.localeCompare(aKey);
@@ -23,6 +24,7 @@ FB.History = (function() {
 
     if (!sales.length) {
       list.innerHTML = '<div class="empty-state"><p>No hay ventas este mes</p></div>';
+      updateSelectionBar();
       return;
     }
 
@@ -33,8 +35,10 @@ FB.History = (function() {
       var dateStr = dateObj.toLocaleDateString('es-ES', { weekday: 'short', day: 'numeric', month: 'short' });
       var discBadge = (sale.discountPct > 0)
         ? '<span class="badge badge-pink" style="margin-left:6px">−' + sale.discountPct + '%</span>' : '';
+      var isSelected = !!selected[sale.id];
 
-      return '<div class="sale-row" data-id="' + sale.id + '">' +
+      return '<div class="sale-row' + (selectMode ? ' selectable' : '') + (isSelected ? ' row-selected' : '') + '" data-id="' + sale.id + '">' +
+        (selectMode ? '<div class="row-checkbox">' + (isSelected ? '✓' : '') + '</div>' : '') +
         '<div class="sale-row-main">' +
           '<div class="sale-date-col">' +
             '<span class="sale-date">' + dateStr + (sale.time ? ' · ' + sale.time : '') + discBadge + '</span>' +
@@ -48,8 +52,74 @@ FB.History = (function() {
     }).join('');
 
     list.querySelectorAll('.sale-row').forEach(function(row) {
-      row.addEventListener('click', function() { showDetail(row.dataset.id, products); });
+      row.addEventListener('click', function() {
+        if (selectMode) {
+          toggleSelect(row.dataset.id, row);
+        } else {
+          showDetail(row.dataset.id, products);
+        }
+      });
     });
+
+    updateSelectionBar();
+  }
+
+  function toggleSelect(id, row) {
+    if (selected[id]) {
+      delete selected[id];
+      row.classList.remove('row-selected');
+      row.querySelector('.row-checkbox').textContent = '';
+    } else {
+      selected[id] = true;
+      row.classList.add('row-selected');
+      row.querySelector('.row-checkbox').textContent = '✓';
+    }
+    updateSelectionBar();
+  }
+
+  function updateSelectionBar() {
+    var bar   = document.getElementById('selection-bar');
+    var count = Object.keys(selected).length;
+    if (!bar) return;
+    if (selectMode) {
+      bar.style.display = 'flex';
+      var label = bar.querySelector('.sel-count');
+      if (label) label.textContent = count > 0 ? count + ' seleccionada' + (count > 1 ? 's' : '') : 'Toca para seleccionar';
+      var delBtn = bar.querySelector('#sel-delete');
+      if (delBtn) delBtn.disabled = count === 0;
+    } else {
+      bar.style.display = 'none';
+    }
+  }
+
+  function enterSelectMode() {
+    selectMode = true;
+    selected   = {};
+    var btn = document.getElementById('hist-select-btn');
+    if (btn) { btn.textContent = 'Cancelar'; btn.classList.add('active'); }
+    refresh();
+  }
+
+  function exitSelectMode() {
+    selectMode = false;
+    selected   = {};
+    var btn = document.getElementById('hist-select-btn');
+    if (btn) { btn.textContent = 'Seleccionar'; btn.classList.remove('active'); }
+    refresh();
+  }
+
+  function deleteSelected() {
+    var ids   = Object.keys(selected);
+    var count = ids.length;
+    if (!count) return;
+    FB.Modal.confirm(
+      '¿Eliminar ' + count + ' venta' + (count > 1 ? 's' : '') + '?',
+      function() {
+        ids.forEach(function(id) { FB.Storage.deleteSale(id); });
+        FB.Toast.show(count + ' venta' + (count > 1 ? 's eliminadas' : ' eliminada'));
+        exitSelectMode();
+      }
+    );
   }
 
   function showDetail(saleId, products) {
@@ -108,18 +178,32 @@ FB.History = (function() {
 
   return {
     render: function(container, navigate) {
-      _navigate = navigate;
+      _navigate  = navigate;
+      selectMode = false;
+      selected   = {};
       currentMonth = FB.Calc.monthKey(new Date().toISOString().slice(0, 10));
+
       container.innerHTML =
-        '<div class="view-header"><div class="month-nav">' +
-          '<button class="month-btn" id="hist-prev">‹</button>' +
-          '<span class="month-title" id="hist-month-label"></span>' +
-          '<button class="month-btn" id="hist-next">›</button>' +
-        '</div></div>' +
-        '<div id="hist-list"></div>';
+        '<div class="view-header">' +
+          '<div class="month-nav">' +
+            '<button class="month-btn" id="hist-prev">‹</button>' +
+            '<span class="month-title" id="hist-month-label"></span>' +
+            '<button class="month-btn" id="hist-next">›</button>' +
+          '</div>' +
+          '<button class="btn-select-mode" id="hist-select-btn">Seleccionar</button>' +
+        '</div>' +
+        '<div id="hist-list"></div>' +
+        '<div id="selection-bar" style="display:none">' +
+          '<span class="sel-count">Toca para seleccionar</span>' +
+          '<button class="btn btn-danger btn-sm" id="sel-delete" disabled>Eliminar</button>' +
+        '</div>';
 
       document.getElementById('hist-prev').addEventListener('click', function() { currentMonth = FB.Calc.prevMonth(currentMonth); refresh(); });
       document.getElementById('hist-next').addEventListener('click', function() { currentMonth = FB.Calc.nextMonth(currentMonth); refresh(); });
+      document.getElementById('hist-select-btn').addEventListener('click', function() {
+        if (selectMode) exitSelectMode(); else enterSelectMode();
+      });
+      document.getElementById('sel-delete').addEventListener('click', deleteSelected);
       refresh();
     }
   };

@@ -49,12 +49,12 @@ a { color: inherit; }
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 10px 16px 6px;
+  padding: 18px 16px 10px;
   background: var(--purple-bg);
 }
 
 #app-logo {
-  height: 52px;
+  height: 60px;
   width: auto;
   object-fit: contain;
 }
@@ -344,6 +344,25 @@ a { color: inherit; }
 .alert-info { background: var(--purple-bg); color: var(--purple); border: 1px solid var(--purple-light); }
 
 /* ─── History ────────────────────────────────────────────────────────────────── */
+.view-header { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px; margin-bottom: 12px; }
+.month-nav { display: flex; align-items: center; gap: 8px; }
+
+.btn-select-mode {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--purple);
+  padding: 6px 12px;
+  border-radius: 8px;
+  border: 1.5px solid var(--purple);
+  background: transparent;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.btn-select-mode.active {
+  background: var(--purple);
+  color: var(--white);
+}
+
 .sale-row {
   background: var(--white);
   border-radius: 12px;
@@ -351,16 +370,61 @@ a { color: inherit; }
   margin-bottom: 8px;
   cursor: pointer;
   box-shadow: var(--shadow);
-  transition: transform 0.1s;
+  transition: transform 0.1s, background 0.15s;
+  display: flex;
+  align-items: center;
+  gap: 12px;
 }
 .sale-row:active { transform: scale(0.98); }
-.sale-row-main { display: flex; justify-content: space-between; align-items: center; }
+.sale-row.row-selected { background: #ede9f9; border: 1.5px solid var(--purple); }
+
+.row-checkbox {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  border: 2px solid var(--purple-light);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--white);
+  background: transparent;
+  flex-shrink: 0;
+  transition: background 0.15s;
+}
+.row-selected .row-checkbox {
+  background: var(--purple);
+  border-color: var(--purple);
+}
+
+.sale-row-main { flex: 1; display: flex; justify-content: space-between; align-items: center; }
 .sale-date-col { display: flex; flex-direction: column; gap: 3px; }
 .sale-date { font-size: 15px; font-weight: 600; text-transform: capitalize; }
 .sale-items-count { font-size: 12px; color: var(--text-light); }
 .sale-amounts { display: flex; flex-direction: column; align-items: flex-end; gap: 3px; }
 .sale-revenue { font-size: 16px; font-weight: 700; }
 .sale-profit { font-size: 13px; font-weight: 500; }
+
+#selection-bar {
+  position: fixed;
+  bottom: 72px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: calc(100% - 32px);
+  max-width: 568px;
+  background: var(--white);
+  border-radius: 14px;
+  box-shadow: 0 4px 20px rgba(95,86,175,0.18);
+  padding: 12px 16px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  z-index: 20;
+  border: 1.5px solid var(--border);
+}
+.sel-count { font-size: 14px; font-weight: 600; color: var(--text); }
+.btn-sm { padding: 8px 16px; font-size: 13px; font-weight: 700; border-radius: 8px; }
 
 /* ─── Catalog ────────────────────────────────────────────────────────────────── */
 .tabs { display: flex; gap: 0; margin-bottom: 14px; background: var(--white); border-radius: 10px; overflow: hidden; border: 1.5px solid var(--border); }
