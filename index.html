@@ -21,9 +21,33 @@
 
   <!-- Firebase SDK -->
   <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
 </head>
 <body>
+
+  <!-- Pantalla de login -->
+  <div id="login-screen">
+    <div id="login-card">
+      <img src="icons/logo.png" alt="Flavia's Bakery" id="login-logo">
+      <div id="login-error" class="login-error" style="display:none"></div>
+
+      <div id="login-form">
+        <input type="email"    id="login-email"    class="form-input" placeholder="Correo electrónico" autocomplete="email">
+        <input type="password" id="login-password" class="form-input" placeholder="Contraseña" autocomplete="current-password">
+        <button class="btn btn-primary btn-full" id="login-btn">Entrar</button>
+        <button class="btn btn-ghost btn-full" id="show-register-btn">Crear cuenta nueva</button>
+      </div>
+
+      <div id="register-form" style="display:none">
+        <input type="email"    id="reg-email"     class="form-input" placeholder="Correo electrónico" autocomplete="email">
+        <input type="password" id="reg-password"  class="form-input" placeholder="Contraseña (mínimo 6 caracteres)" autocomplete="new-password">
+        <input type="password" id="reg-password2" class="form-input" placeholder="Repetir contraseña" autocomplete="new-password">
+        <button class="btn btn-primary btn-full" id="register-btn">Crear cuenta</button>
+        <button class="btn btn-ghost btn-full" id="show-login-btn">Ya tengo cuenta</button>
+      </div>
+    </div>
+  </div>
 
   <div id="install-banner">
     <span>📱 Instala la app para usar offline</span>

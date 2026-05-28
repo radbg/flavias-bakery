@@ -37,10 +37,10 @@ FB.Storage = (function() {
   }
 
   // ── Inicialización Firestore ──────────────────────────────────────────────────
-  function init(db, bakeryId, onUpdate) {
+  function init(db, userId, onUpdate) {
     _db       = db;
     _onUpdate = onUpdate;
-    _bakeryRef = db.collection('bakeries').doc(bakeryId);
+    _bakeryRef = db.collection('users').doc(userId);
 
     // Persistencia offline (IndexedDB) — funciona igual que localStorage pero sincroniza
     db.enablePersistence({ synchronizeTabs: true }).catch(function(err) {

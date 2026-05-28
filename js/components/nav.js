@@ -39,10 +39,10 @@ FB.Nav = (function() {
         '<button data-view="expenses">💸 Gastos extras</button>' +
         '<button data-view="monthly-report">📈 Resumen mensual</button>' +
         '<div class="more-divider"></div>' +
-        '<button data-action="link">🔗 Vincular dispositivo</button>' +
-        '<div class="more-divider"></div>' +
         '<button data-action="export">📤 Exportar datos</button>' +
-        '<button data-action="import">📥 Importar datos</button>';
+        '<button data-action="import">📥 Importar datos</button>' +
+        '<div class="more-divider"></div>' +
+        '<button data-action="logout">🚪 Cerrar sesión</button>';
 
       // input oculto para seleccionar archivo JSON
       var fileInput = document.createElement('input');
@@ -61,47 +61,6 @@ FB.Nav = (function() {
         });
       });
 
-      // Vincular dispositivo
-      menu.querySelector('[data-action="link"]').addEventListener('click', function() {
-        menu.remove();
-        fileInput.remove();
-        var myId = localStorage.getItem('fb_bakery_id') || '(sin código aún)';
-        FB.Modal.open(
-          '<h3 class="modal-title">🔗 Vincular dispositivo</h3>' +
-          '<p style="font-size:14px;color:var(--text-light);margin-bottom:16px">Para sincronizar datos entre dispositivos, usá el mismo código en ambos.</p>' +
-          '<p style="font-size:12px;font-weight:600;color:var(--text-light);margin-bottom:6px">TU CÓDIGO</p>' +
-          '<div class="link-code-box" id="link-code-display">' + myId + '</div>' +
-          '<button class="btn btn-outline btn-full" id="copy-code-btn" style="margin-bottom:20px">Copiar código</button>' +
-          '<p style="font-size:12px;font-weight:600;color:var(--text-light);margin-bottom:6px">CONECTAR CON OTRO CÓDIGO</p>' +
-          '<input type="text" id="link-code-input" class="form-input" placeholder="Pegá el código del otro dispositivo">' +
-          '<div class="modal-footer">' +
-            '<button class="btn btn-ghost" id="link-cancel">Cancelar</button>' +
-            '<button class="btn btn-primary" id="link-connect">Conectar</button>' +
-          '</div>',
-          null, { hideFooter: true }
-        );
-        document.getElementById('copy-code-btn').addEventListener('click', function() {
-          navigator.clipboard.writeText(myId).then(function() {
-            FB.Toast.show('Código copiado ✅');
-          }).catch(function() {
-            FB.Toast.show('Copiá manualmente: ' + myId);
-          });
-        });
-        document.getElementById('link-cancel').addEventListener('click', function() { FB.Modal.close(); });
-        document.getElementById('link-connect').addEventListener('click', function() {
-          var newId = document.getElementById('link-code-input').value.trim();
-          if (!newId || newId.length < 10) { FB.Toast.show('Código inválido', 'error'); return; }
-          FB.Modal.confirm(
-            '¿Reemplazar datos con los del otro dispositivo?',
-            function() {
-              localStorage.setItem('fb_bakery_id', newId);
-              FB.Toast.show('Vinculando... recargando');
-              setTimeout(function() { window.location.reload(); }, 800);
-            }
-          );
-        });
-      });
-
       // Exportar
       menu.querySelector('[data-action="export"]').addEventListener('click', function() {
         menu.remove();
@@ -114,6 +73,19 @@ FB.Nav = (function() {
       menu.querySelector('[data-action="import"]').addEventListener('click', function() {
         menu.remove();
         fileInput.click();
+      });
+
+      // Cerrar sesión
+      menu.querySelector('[data-action="logout"]').addEventListener('click', function() {
+        menu.remove();
+        fileInput.remove();
+        FB.Modal.confirm('¿Cerrar sesión?', function() {
+          if (window.firebase && firebase.auth) {
+            firebase.auth().signOut();
+          } else {
+            window.location.reload();
+          }
+        });
       });
 
       fileInput.addEventListener('change', function() {

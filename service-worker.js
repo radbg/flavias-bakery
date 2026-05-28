@@ -1,10 +1,11 @@
-const CACHE_NAME = 'flavias-bakery-v5';
+const CACHE_NAME = 'flavias-bakery-v6';
 
 const CDN_URLS = [
   'https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js',
   'https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js',
   'https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&display=swap',
   'https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js',
+  'https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js',
   'https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js'
 ];
 

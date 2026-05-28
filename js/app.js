@@ -123,25 +123,61 @@ function rerender() {
 window.FB = window.FB || {};
 FB.App = { navigate: navigate, rerender: rerender };
 
+// ─── Auth helpers ─────────────────────────────────────────────────────────────
+function showLoginScreen() {
+  document.getElementById('login-screen').style.display = 'flex';
+  document.getElementById('app').style.display = 'none';
+}
+
+function showApp() {
+  document.getElementById('login-screen').style.display = 'none';
+  document.getElementById('app').style.display = 'flex';
+}
+
+function showAuthError(msg) {
+  var el = document.getElementById('login-error');
+  if (!el) return;
+  el.textContent = msg;
+  el.style.display = 'block';
+}
+
+function clearAuthError() {
+  var el = document.getElementById('login-error');
+  if (el) el.style.display = 'none';
+}
+
 // ─── Firebase init ────────────────────────────────────────────────────────────
 function initFirebase() {
-  // Si el config todavía tiene el placeholder, saltar y usar localStorage
-  if (!window.FIREBASE_CONFIG || FIREBASE_CONFIG.apiKey === 'REEMPLAZAR') return;
-
+  if (!window.FIREBASE_CONFIG || FIREBASE_CONFIG.apiKey === 'REEMPLAZAR') return false;
   try {
     firebase.initializeApp(FIREBASE_CONFIG);
-    var db = firebase.firestore();
-
-    var bakeryId = localStorage.getItem('fb_bakery_id');
-    if (!bakeryId) {
-      bakeryId = crypto.randomUUID();
-      localStorage.setItem('fb_bakery_id', bakeryId);
-    }
-
-    FB.Storage.init(db, bakeryId, rerender);
+    return true;
   } catch(e) {
-    console.warn('Firebase init failed, using localStorage:', e);
+    console.warn('Firebase init failed:', e);
+    return false;
   }
+}
+
+function startApp(user) {
+  var db = firebase.firestore();
+  FB.Storage.init(db, user.uid, rerender);
+
+  var started = false;
+  FB.Storage.onReady(function() {
+    if (started) return;
+    started = true;
+    showApp();
+    seedIfEmpty();
+    navigate('dashboard');
+  });
+  // Fallback por si Firestore no responde en 5s
+  setTimeout(function() {
+    if (started) return;
+    started = true;
+    showApp();
+    seedIfEmpty();
+    navigate('dashboard');
+  }, 5000);
 }
 
 // ─── PWA install banner ───────────────────────────────────────────────────────
@@ -157,28 +193,92 @@ window.addEventListener('beforeinstallprompt', function(e) {
 
 // ─── Init ─────────────────────────────────────────────────────────────────────
 document.addEventListener('DOMContentLoaded', function() {
-  initFirebase();
+  var firebaseOk = initFirebase();
 
-  function start() {
+  if (!firebaseOk) {
+    // Sin Firebase: modo localStorage directo
+    showApp();
     seedIfEmpty();
     navigate('dashboard');
-  }
-
-  // Si Firestore está activo, esperar a que lleguen los datos antes de arrancar
-  // (evita que seedIfEmpty() corra con caché vacío y sobreescriba datos reales)
-  if (FB.Storage.isFirestoreMode()) {
-    var started = false;
-    FB.Storage.onReady(function() {
-      if (!started) { started = true; start(); }
-    });
-    // Fallback: si Firestore no responde en 5s, arrancar con localStorage
-    setTimeout(function() {
-      if (!started) { started = true; start(); }
-    }, 5000);
   } else {
-    start();
+    // Mostrar login mientras se verifica la sesión
+    showLoginScreen();
+
+    // Escuchar cambios de sesión
+    firebase.auth().onAuthStateChanged(function(user) {
+      if (user) {
+        // Sesión activa → entrar a la app
+        startApp(user);
+      } else {
+        // Sin sesión → mostrar pantalla de login
+        showLoginScreen();
+      }
+    });
+
+    // ── Botones del login ──────────────────────────────────────────────────────
+    var loginForm    = document.getElementById('login-form');
+    var registerForm = document.getElementById('register-form');
+
+    document.getElementById('show-register-btn').addEventListener('click', function() {
+      clearAuthError();
+      loginForm.style.display    = 'none';
+      registerForm.style.display = 'flex';
+    });
+    document.getElementById('show-login-btn').addEventListener('click', function() {
+      clearAuthError();
+      registerForm.style.display = 'none';
+      loginForm.style.display    = 'flex';
+    });
+
+    document.getElementById('login-btn').addEventListener('click', function() {
+      var email = document.getElementById('login-email').value.trim();
+      var pass  = document.getElementById('login-password').value;
+      if (!email || !pass) { showAuthError('Completa todos los campos'); return; }
+      clearAuthError();
+      this.textContent = 'Entrando...';
+      var btn = this;
+      firebase.auth().signInWithEmailAndPassword(email, pass)
+        .catch(function(e) {
+          btn.textContent = 'Entrar';
+          showAuthError('Correo o contraseña incorrectos');
+        });
+    });
+
+    document.getElementById('register-btn').addEventListener('click', function() {
+      var email = document.getElementById('reg-email').value.trim();
+      var pass  = document.getElementById('reg-password').value;
+      var pass2 = document.getElementById('reg-password2').value;
+      if (!email || !pass) { showAuthError('Completa todos los campos'); return; }
+      if (pass.length < 6)  { showAuthError('La contraseña debe tener al menos 6 caracteres'); return; }
+      if (pass !== pass2)   { showAuthError('Las contraseñas no coinciden'); return; }
+      clearAuthError();
+      var btn = this;
+      btn.textContent = 'Creando cuenta...';
+      firebase.auth().createUserWithEmailAndPassword(email, pass)
+        .catch(function(e) {
+          btn.textContent = 'Crear cuenta';
+          if (e.code === 'auth/email-already-in-use') {
+            showAuthError('Ese correo ya tiene una cuenta. Inicia sesión.');
+          } else {
+            showAuthError(e.message);
+          }
+        });
+    });
+
+    // Enter key en los campos
+    ['login-email','login-password'].forEach(function(id) {
+      document.getElementById(id).addEventListener('keydown', function(e) {
+        if (e.key === 'Enter') document.getElementById('login-btn').click();
+      });
+    });
+    ['reg-email','reg-password','reg-password2'].forEach(function(id) {
+      document.getElementById(id).addEventListener('keydown', function(e) {
+        if (e.key === 'Enter') document.getElementById('register-btn').click();
+      });
+    });
   }
 
+  // ── Install banner ──────────────────────────────────────────────────────────
   var dismissBtn = document.getElementById('install-dismiss');
   var installBtn = document.getElementById('install-do');
   if (dismissBtn) dismissBtn.addEventListener('click', function() {
