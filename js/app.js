@@ -158,7 +158,26 @@ window.addEventListener('beforeinstallprompt', function(e) {
 // ─── Init ─────────────────────────────────────────────────────────────────────
 document.addEventListener('DOMContentLoaded', function() {
   initFirebase();
-  seedIfEmpty();
+
+  function start() {
+    seedIfEmpty();
+    navigate('dashboard');
+  }
+
+  // Si Firestore está activo, esperar a que lleguen los datos antes de arrancar
+  // (evita que seedIfEmpty() corra con caché vacío y sobreescriba datos reales)
+  if (FB.Storage.isFirestoreMode()) {
+    var started = false;
+    FB.Storage.onReady(function() {
+      if (!started) { started = true; start(); }
+    });
+    // Fallback: si Firestore no responde en 5s, arrancar con localStorage
+    setTimeout(function() {
+      if (!started) { started = true; start(); }
+    }, 5000);
+  } else {
+    start();
+  }
 
   var dismissBtn = document.getElementById('install-dismiss');
   var installBtn = document.getElementById('install-do');
@@ -175,8 +194,6 @@ document.addEventListener('DOMContentLoaded', function() {
       });
     }
   });
-
-  navigate('dashboard');
 
   if ('serviceWorker' in navigator) {
     navigator.serviceWorker.register('service-worker.js');

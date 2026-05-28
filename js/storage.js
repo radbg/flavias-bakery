@@ -19,15 +19,20 @@ FB.Storage = (function() {
   function save(key, data) { localStorage.setItem(key, JSON.stringify(data)); }
 
   // ── Modo Firestore ────────────────────────────────────────────────────────────
-  var _db          = null;
-  var _bakeryRef   = null;
-  var _onUpdate    = null;   // callback para re-renderizar la UI al recibir cambios
-  var _ready       = false;
+  var _db           = null;
+  var _bakeryRef    = null;
+  var _onUpdate     = null;   // callback para re-renderizar la UI al recibir cambios
+  var _ready        = false;
+  var _onReadyCbs   = [];     // callbacks que se disparan una sola vez al cargar datos
 
   // Caché en memoria — lectura siempre instantánea y sin bloques async
   var _cache = { products: [], sales: [], expenses: [], fixedCosts: {} };
 
-  function _notify() {
+  function _notify(isFirst) {
+    if (isFirst) {
+      _onReadyCbs.forEach(function(cb) { cb(); });
+      _onReadyCbs = [];
+    }
     if (_onUpdate) _onUpdate();
   }
 
@@ -56,15 +61,17 @@ FB.Storage = (function() {
         // Primera vez: migrar datos de localStorage a Firestore
         _migrateFromLocalStorage();
       }
+      var firstLoad = !_ready;
       _ready = true;
-      _notify();
+      _notify(firstLoad);
     }, function(err) {
       console.error('Firestore error:', err);
-      // Si Firestore falla, usar localStorage
+      // Si Firestore falla, usar localStorage como fallback
       _cache.products   = load(KEYS.products);
       _cache.fixedCosts = loadObj(KEYS.fixedCosts);
+      var firstLoad = !_ready;
       _ready = true;
-      _notify();
+      _notify(firstLoad);
     });
 
     // Escuchar ventas (subcolección)
@@ -121,7 +128,12 @@ FB.Storage = (function() {
   // ── API pública (misma interfaz que antes) ────────────────────────────────────
   return {
     init: init,
+    isFirestoreMode: function() { return isFirestore(); },
     isReady: function() { return !isFirestore() || _ready; },
+    onReady: function(cb) {
+      if (_ready) cb();
+      else _onReadyCbs.push(cb);
+    },
 
     // ── Products ────────────────────────────────────────────────────────────────
     getProducts: function() {
@@ -250,7 +262,7 @@ FB.Storage = (function() {
         _cache.fixedCosts[monthStr] = Number(amount) || 0;
         var upd = {};
         upd['fixedCosts.' + monthStr] = Number(amount) || 0;
-        _bakeryRef.update(upd);
+        _bakeryRef.set(upd, { merge: true });
       } else {
         var all = loadObj(KEYS.fixedCosts);
         all[monthStr] = Number(amount) || 0;
