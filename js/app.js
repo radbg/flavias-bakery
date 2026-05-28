@@ -88,8 +88,13 @@ function seedIfEmpty() {
 }
 
 // ─── Router ───────────────────────────────────────────────────────────────────
+var _currentView   = 'dashboard';
+var _currentParams = {};
+
 function navigate(view, params) {
   params = params || {};
+  _currentView   = view;
+  _currentParams = params;
   var container = document.getElementById('main-content');
   container.innerHTML = '';
   FB.Nav.render(view, navigate);
@@ -102,6 +107,40 @@ function navigate(view, params) {
     case 'expenses':       FB.Expenses.render(container);             break;
     case 'monthly-report': FB.MonthlyReport.render(container);        break;
     default:               FB.Dashboard.render(container);
+  }
+}
+
+// Vistas de solo lectura que se pueden refrescar automáticamente al recibir datos
+var AUTO_REFRESH_VIEWS = ['dashboard', 'history', 'monthly-report', 'expenses'];
+
+function rerender() {
+  if (AUTO_REFRESH_VIEWS.indexOf(_currentView) !== -1) {
+    navigate(_currentView, _currentParams);
+  }
+}
+
+// Exportar para uso externo (ej. desde nav.js)
+window.FB = window.FB || {};
+FB.App = { navigate: navigate, rerender: rerender };
+
+// ─── Firebase init ────────────────────────────────────────────────────────────
+function initFirebase() {
+  // Si el config todavía tiene el placeholder, saltar y usar localStorage
+  if (!window.FIREBASE_CONFIG || FIREBASE_CONFIG.apiKey === 'REEMPLAZAR') return;
+
+  try {
+    firebase.initializeApp(FIREBASE_CONFIG);
+    var db = firebase.firestore();
+
+    var bakeryId = localStorage.getItem('fb_bakery_id');
+    if (!bakeryId) {
+      bakeryId = crypto.randomUUID();
+      localStorage.setItem('fb_bakery_id', bakeryId);
+    }
+
+    FB.Storage.init(db, bakeryId, rerender);
+  } catch(e) {
+    console.warn('Firebase init failed, using localStorage:', e);
   }
 }
 
@@ -118,6 +157,7 @@ window.addEventListener('beforeinstallprompt', function(e) {
 
 // ─── Init ─────────────────────────────────────────────────────────────────────
 document.addEventListener('DOMContentLoaded', function() {
+  initFirebase();
   seedIfEmpty();
 
   var dismissBtn = document.getElementById('install-dismiss');

@@ -1,9 +1,11 @@
-const CACHE_NAME = 'flavias-bakery-v3';
+const CACHE_NAME = 'flavias-bakery-v4';
 
 const CDN_URLS = [
   'https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js',
   'https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js',
-  'https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&display=swap'
+  'https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&display=swap',
+  'https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js',
+  'https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js'
 ];
 
 // App shell — todo lo necesario para funcionar offline
@@ -23,6 +25,7 @@ const APP_SHELL = [
   './js/views/catalog.js',
   './js/views/expenses.js',
   './js/views/monthly-report.js',
+  './js/firebase-config.js',
   './js/app.js',
   './icons/icon-192.png',
   './icons/icon-512.png',
@@ -58,7 +61,7 @@ self.addEventListener('fetch', function(e) {
   var url = e.request.url;
 
   // CDN → cache-first
-  if (url.includes('jsdelivr.net') || url.includes('fonts.google') || url.includes('gstatic.com')) {
+  if (url.includes('jsdelivr.net') || url.includes('fonts.google') || url.includes('gstatic.com') || url.includes('googleapis.com')) {
     e.respondWith(
       caches.match(e.request).then(function(cached) {
         return cached || fetch(e.request).then(function(res) {

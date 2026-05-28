@@ -120,6 +120,19 @@ a { color: inherit; }
 #more-menu button:last-child { border-bottom: none; }
 #more-menu button:hover { background: var(--purple-bg); }
 .more-divider { height: 1px; background: var(--border); margin: 4px 0; }
+.link-code-box {
+  font-family: monospace;
+  font-size: 11px;
+  word-break: break-all;
+  background: var(--purple-bg);
+  border: 1.5px solid var(--border);
+  border-radius: 8px;
+  padding: 10px 12px;
+  color: var(--purple);
+  font-weight: 600;
+  margin-bottom: 10px;
+  user-select: all;
+}
 #more-menu button[data-action="export"],
 #more-menu button[data-action="import"] { color: var(--purple); font-weight: 600; }
 
