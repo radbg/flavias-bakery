@@ -8,10 +8,10 @@
 // ──────────────────────────────────────────────────────────────────────────────
 
 var FIREBASE_CONFIG = {
-  apiKey:            "REEMPLAZAR",
-  authDomain:        "REEMPLAZAR.firebaseapp.com",
-  projectId:         "REEMPLAZAR",
-  storageBucket:     "REEMPLAZAR.appspot.com",
-  messagingSenderId: "REEMPLAZAR",
-  appId:             "REEMPLAZAR"
+  apiKey:            "AIzaSyBZXXabM_MePXby8CKeqMzhxIeemOxwry4",
+  authDomain:        "flavias-bakery.firebaseapp.com",
+  projectId:         "flavias-bakery",
+  storageBucket:     "flavias-bakery.firebasestorage.app",
+  messagingSenderId: "1064217903114",
+  appId:             "1:1064217903114:web:6d40dc372b8c048fab5ff3"
 };
