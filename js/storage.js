@@ -92,6 +92,45 @@ FB.Storage = (function() {
       var all = loadObj(KEYS.fixedCosts);
       all[monthStr] = Number(amount) || 0;
       save(KEYS.fixedCosts, all);
+    },
+
+    // ── Backup export / import ────────────────────────────────────────────────
+    exportBackup: function() {
+      var data = {
+        version:    1,
+        exportedAt: new Date().toISOString(),
+        products:   load(KEYS.products),
+        sales:      load(KEYS.sales),
+        expenses:   load(KEYS.expenses),
+        fixedCosts: loadObj(KEYS.fixedCosts)
+      };
+      var json = JSON.stringify(data, null, 2);
+      var blob = new Blob([json], { type: 'application/json' });
+      var url  = URL.createObjectURL(blob);
+      var a    = document.createElement('a');
+      var date = new Date().toISOString().slice(0, 10);
+      a.href     = url;
+      a.download = 'flavias-bakery-backup-' + date + '.json';
+      a.click();
+      URL.revokeObjectURL(url);
+    },
+
+    importBackup: function(file, onSuccess, onError) {
+      var reader = new FileReader();
+      reader.onload = function(e) {
+        try {
+          var data = JSON.parse(e.target.result);
+          if (!data.products || !data.sales) throw new Error('Archivo inválido');
+          save(KEYS.products,   data.products);
+          save(KEYS.sales,      data.sales);
+          save(KEYS.expenses,   data.expenses   || []);
+          save(KEYS.fixedCosts, data.fixedCosts || {});
+          if (onSuccess) onSuccess();
+        } catch (err) {
+          if (onError) onError(err.message);
+        }
+      };
+      reader.readAsText(file);
     }
   };
 })();

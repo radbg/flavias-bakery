@@ -119,6 +119,9 @@ a { color: inherit; }
 }
 #more-menu button:last-child { border-bottom: none; }
 #more-menu button:hover { background: var(--purple-bg); }
+.more-divider { height: 1px; background: var(--border); margin: 4px 0; }
+#more-menu button[data-action="export"],
+#more-menu button[data-action="import"] { color: var(--purple); font-weight: 600; }
 
 /* ─── View Header ────────────────────────────────────────────────────────────── */
 .view-header {

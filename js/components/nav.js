@@ -32,17 +32,72 @@ FB.Nav = (function() {
     toggleMoreMenu: function(navigate) {
       var existing = document.getElementById('more-menu');
       if (existing) { existing.remove(); return; }
+
       var menu = document.createElement('div');
       menu.id = 'more-menu';
       menu.innerHTML =
         '<button data-view="expenses">💸 Gastos extras</button>' +
-        '<button data-view="monthly-report">📈 Resumen mensual</button>';
+        '<button data-view="monthly-report">📈 Resumen mensual</button>' +
+        '<div class="more-divider"></div>' +
+        '<button data-action="export">📤 Exportar datos</button>' +
+        '<button data-action="import">📥 Importar datos</button>';
+
+      // input oculto para seleccionar archivo JSON
+      var fileInput = document.createElement('input');
+      fileInput.type    = 'file';
+      fileInput.accept  = '.json';
+      fileInput.style.display = 'none';
+      document.body.appendChild(fileInput);
       document.body.appendChild(menu);
-      menu.querySelectorAll('button').forEach(function(btn) {
-        btn.addEventListener('click', function() { menu.remove(); navigate(btn.dataset.view); });
+
+      // Navegación normal
+      menu.querySelectorAll('button[data-view]').forEach(function(btn) {
+        btn.addEventListener('click', function() {
+          fileInput.remove();
+          menu.remove();
+          navigate(btn.dataset.view);
+        });
       });
+
+      // Exportar
+      menu.querySelector('[data-action="export"]').addEventListener('click', function() {
+        menu.remove();
+        fileInput.remove();
+        FB.Storage.exportBackup();
+        FB.Toast.show('Datos exportados ✅');
+      });
+
+      // Importar
+      menu.querySelector('[data-action="import"]').addEventListener('click', function() {
+        menu.remove();
+        fileInput.click();
+      });
+
+      fileInput.addEventListener('change', function() {
+        if (!fileInput.files.length) { fileInput.remove(); return; }
+        FB.Storage.importBackup(
+          fileInput.files[0],
+          function() {
+            fileInput.remove();
+            FB.Toast.show('Datos importados ✅ Recargando...');
+            setTimeout(function() { window.location.reload(); }, 1200);
+          },
+          function(msg) {
+            fileInput.remove();
+            FB.Toast.show('Error al importar: ' + msg, 'error');
+          }
+        );
+      });
+
+      // Cerrar al tocar afuera
       setTimeout(function() {
-        document.addEventListener('click', function() { menu.remove(); }, { once: true });
+        document.addEventListener('click', function close(ev) {
+          if (!menu.contains(ev.target)) {
+            menu.remove();
+            fileInput.remove();
+            document.removeEventListener('click', close);
+          }
+        });
       }, 50);
     }
   };
