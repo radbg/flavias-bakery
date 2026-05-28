@@ -166,11 +166,14 @@ function startApp(user) {
   FB.Storage.onReady(function() {
     if (started) return;
     started = true;
-    showApp();
-    seedIfEmpty();
-    navigate('dashboard');
+
+    // Intentar migración de datos viejos (bakeries → users)
+    migrateOldData(db, user.uid, function() {
+      showApp();
+      seedIfEmpty();
+      navigate('dashboard');
+    });
   });
-  // Fallback por si Firestore no responde en 5s
   setTimeout(function() {
     if (started) return;
     started = true;
@@ -178,6 +181,66 @@ function startApp(user) {
     seedIfEmpty();
     navigate('dashboard');
   }, 5000);
+}
+
+function migrateOldData(db, userId, done) {
+  // Si ya se migró antes, saltar
+  if (localStorage.getItem('fb_migrated')) { done(); return; }
+
+  var oldId = localStorage.getItem('fb_bakery_id');
+  if (!oldId) { done(); return; }
+
+  var oldRef = db.collection('bakeries').doc(oldId);
+
+  // Verificar si hay datos en la cuenta nueva ya
+  var newRef = db.collection('users').doc(userId);
+  newRef.get().then(function(newDoc) {
+    // Si ya tiene productos en la cuenta nueva, no migrar
+    if (newDoc.exists && (newDoc.data().products || []).length > 0) {
+      localStorage.setItem('fb_migrated', '1');
+      done();
+      return;
+    }
+
+    // Leer datos viejos
+    oldRef.get().then(function(oldDoc) {
+      if (!oldDoc.exists) { done(); return; }
+
+      var data = oldDoc.data();
+      var products   = data.products   || [];
+      var fixedCosts = data.fixedCosts || {};
+
+      if (products.length === 0) { done(); return; }
+
+      // Copiar documento principal
+      var batch = db.batch();
+      batch.set(newRef, { products: products, fixedCosts: fixedCosts }, { merge: true });
+
+      // Copiar ventas
+      oldRef.collection('sales').get().then(function(salesSnap) {
+        salesSnap.docs.forEach(function(d) {
+          batch.set(newRef.collection('sales').doc(d.id), d.data());
+        });
+
+        // Copiar gastos
+        oldRef.collection('expenses').get().then(function(expSnap) {
+          expSnap.docs.forEach(function(d) {
+            batch.set(newRef.collection('expenses').doc(d.id), d.data());
+          });
+
+          batch.commit().then(function() {
+            localStorage.setItem('fb_migrated', '1');
+            var total = salesSnap.size;
+            FB.Toast.show('✅ ' + products.length + ' productos y ' + total + ' ventas recuperadas');
+            done();
+          }).catch(function(e) {
+            console.error('Migration error:', e);
+            done();
+          });
+        });
+      });
+    }).catch(function() { done(); });
+  }).catch(function() { done(); });
 }
 
 // ─── PWA install banner ───────────────────────────────────────────────────────
