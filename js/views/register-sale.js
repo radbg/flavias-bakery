@@ -89,9 +89,21 @@ FB.RegisterSale = (function() {
     document.getElementById('sale-delivery').value = sale.delivery    || 0;
     document.getElementById('sale-discount').value = sale.discountPct || 0;
     document.getElementById('sale-notes').value    = sale.notes       || '';
+
+    // Restaurar forma de pago
+    var pm = sale.paymentMethod || 'efectivo';
+    document.querySelectorAll('.payment-btn').forEach(function(btn) {
+      btn.classList.toggle('active', btn.dataset.method === pm);
+    });
+
     renderProductList();
     updateSummary();
     FB.Toast.show('Venta cargada para editar', 'info');
+  }
+
+  function getPaymentMethod() {
+    var active = document.querySelector('.payment-btn.active');
+    return active ? active.dataset.method : 'efectivo';
   }
 
   function saveSale() {
@@ -104,19 +116,24 @@ FB.RegisterSale = (function() {
         return {
           productId: id,
           qty:       Number(quantities[id]),
-          unitPrice: p ? p.price : 0,   // snapshot del precio actual
-          unitCost:  p ? p.cost  : 0    // snapshot del costo actual
+          unitPrice: p ? p.price : 0,
+          unitCost:  p ? p.cost  : 0
         };
       });
     if (!items.length) { FB.Toast.show('Agrega al menos un producto', 'error'); return; }
 
-    var date        = document.getElementById('sale-date').value;
-    var time        = document.getElementById('sale-time').value;
-    var delivery    = parseFloat(document.getElementById('sale-delivery').value)  || 0;
-    var discountPct = parseFloat(document.getElementById('sale-discount').value)  || 0;
-    var notes       = document.getElementById('sale-notes').value.trim();
+    var date          = document.getElementById('sale-date').value;
+    var time          = document.getElementById('sale-time').value;
+    var delivery      = parseFloat(document.getElementById('sale-delivery').value)  || 0;
+    var discountPct   = parseFloat(document.getElementById('sale-discount').value)  || 0;
+    var notes         = document.getElementById('sale-notes').value.trim();
+    var paymentMethod = getPaymentMethod();
 
-    var saleData = { date: date, time: time, items: items, delivery: delivery, discountPct: discountPct, notes: notes };
+    var saleData = {
+      date: date, time: time, items: items,
+      delivery: delivery, discountPct: discountPct,
+      notes: notes, paymentMethod: paymentMethod
+    };
 
     if (editingId) {
       FB.Storage.updateSale(editingId, saleData);
@@ -148,6 +165,15 @@ FB.RegisterSale = (function() {
             '<input type="time" id="sale-time" class="form-input" value="' + nowTime() + '"></div>' +
         '</div>' +
 
+        '<div class="form-section"><label class="form-label">Forma de pago</label>' +
+          '<div class="payment-methods">' +
+            '<button class="payment-btn active" data-method="efectivo">💵 Efectivo</button>' +
+            '<button class="payment-btn" data-method="pago-movil">📱 Pago Móvil</button>' +
+            '<button class="payment-btn" data-method="zelle">🏦 Zelle</button>' +
+            '<button class="payment-btn" data-method="transferencia">🔁 Transferencia</button>' +
+          '</div>' +
+        '</div>' +
+
         '<div class="form-section"><input type="search" id="product-search" class="form-input" placeholder="🔍 Buscar producto..."></div>' +
 
         '<div id="products-list"></div>' +
@@ -172,6 +198,14 @@ FB.RegisterSale = (function() {
         '<button class="btn btn-primary btn-full btn-xl" id="save-sale-btn">GUARDAR VENTA</button>';
 
       renderProductList();
+
+      // Botones de forma de pago
+      container.querySelectorAll('.payment-btn').forEach(function(btn) {
+        btn.addEventListener('click', function() {
+          container.querySelectorAll('.payment-btn').forEach(function(b) { b.classList.remove('active'); });
+          btn.classList.add('active');
+        });
+      });
 
       // Si viene de historial con editSaleId
       if (params.editSaleId) {

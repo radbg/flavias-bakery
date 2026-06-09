@@ -6,6 +6,17 @@ FB.History = (function() {
   var selectMode   = false;
   var selected     = {};
 
+  var PAYMENT_LABELS = {
+    'efectivo':      '💵 Efectivo',
+    'pago-movil':    '📱 Pago Móvil',
+    'zelle':         '🏦 Zelle',
+    'transferencia': '🔁 Transf.'
+  };
+
+  function paymentLabel(method) {
+    return PAYMENT_LABELS[method] || '💵 Efectivo';
+  }
+
   function refresh() {
     var label = document.getElementById('hist-month-label');
     if (label) label.textContent = FB.Calc.monthLabel(currentMonth);
@@ -36,13 +47,14 @@ FB.History = (function() {
       var discBadge = (sale.discountPct > 0)
         ? '<span class="badge badge-pink" style="margin-left:6px">−' + sale.discountPct + '%</span>' : '';
       var isSelected = !!selected[sale.id];
+      var pmLabel = paymentLabel(sale.paymentMethod);
 
       return '<div class="sale-row' + (selectMode ? ' selectable' : '') + (isSelected ? ' row-selected' : '') + '" data-id="' + sale.id + '">' +
         (selectMode ? '<div class="row-checkbox">' + (isSelected ? '✓' : '') + '</div>' : '') +
         '<div class="sale-row-main">' +
           '<div class="sale-date-col">' +
             '<span class="sale-date">' + dateStr + (sale.time ? ' · ' + FB.Calc.fmt12h(sale.time) : '') + discBadge + '</span>' +
-            '<span class="sale-items-count">' + itemCount + ' productos</span>' +
+            '<span class="sale-items-count">' + itemCount + ' productos · <span class="payment-tag">' + pmLabel + '</span></span>' +
           '</div>' +
           '<div class="sale-amounts">' +
             '<span class="sale-revenue">' + FB.Calc.fmt(t.revenue + t.delivery) + '</span>' +
@@ -122,6 +134,13 @@ FB.History = (function() {
     );
   }
 
+  var PAYMENT_FULL_LABELS = {
+    'efectivo':      '💵 Efectivo',
+    'pago-movil':    '📱 Pago Móvil',
+    'zelle':         '🏦 Zelle',
+    'transferencia': '🔁 Transferencia bancaria'
+  };
+
   function showDetail(saleId, products) {
     var sale = FB.Storage.getSales().find(function(s) { return s.id === saleId; });
     if (!sale) return;
@@ -140,9 +159,11 @@ FB.History = (function() {
     var dateObj = new Date(sale.date + 'T00:00:00');
     var dateStr = dateObj.toLocaleDateString('es-ES', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
     var timeStr = sale.time ? ' a las ' + FB.Calc.fmt12h(sale.time) : '';
+    var pmFull  = PAYMENT_FULL_LABELS[sale.paymentMethod] || '💵 Efectivo';
 
     var html =
       '<h3 class="modal-title">' + dateStr + timeStr + '</h3>' +
+      '<div class="detail-payment-badge">' + pmFull + '</div>' +
       (sale.discountPct > 0 ? '<div class="alert alert-info" style="margin-bottom:12px">Descuento aplicado: ' + sale.discountPct + '%</div>' : '') +
       '<table class="detail-table">' +
         '<thead><tr><th>Producto</th><th class="text-center">Cant</th><th class="text-right">P.Unit</th><th class="text-right">Total</th></tr></thead>' +

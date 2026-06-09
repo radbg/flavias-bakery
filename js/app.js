@@ -106,12 +106,13 @@ function navigate(view, params) {
     case 'catalog':        FB.Catalog.render(container);              break;
     case 'expenses':       FB.Expenses.render(container);             break;
     case 'monthly-report': FB.MonthlyReport.render(container);        break;
+    case 'zelle':          FB.Zelle.render(container);                break;
     default:               FB.Dashboard.render(container);
   }
 }
 
 // Vistas de solo lectura que se pueden refrescar automáticamente al recibir datos
-var AUTO_REFRESH_VIEWS = ['dashboard', 'history', 'monthly-report', 'expenses'];
+var AUTO_REFRESH_VIEWS = ['dashboard', 'history', 'monthly-report', 'expenses', 'zelle'];
 
 function rerender() {
   if (AUTO_REFRESH_VIEWS.indexOf(_currentView) !== -1) {

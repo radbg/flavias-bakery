@@ -15,6 +15,140 @@
   <link rel="apple-touch-icon" href="icons/icon-192.png">
   <link rel="stylesheet" href="css/styles.css">
 
+  <!-- Estilos para formas de pago y vista Zelle -->
+  <style>
+    /* ── Botones de forma de pago ── */
+    .payment-methods {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      margin-top: 4px;
+    }
+    .payment-btn {
+      flex: 1;
+      min-width: 0;
+      padding: 8px 6px;
+      border: 2px solid var(--border, #e0e0e0);
+      border-radius: 10px;
+      background: var(--surface, #fff);
+      color: var(--text, #333);
+      font-size: 0.78rem;
+      font-weight: 500;
+      cursor: pointer;
+      text-align: center;
+      transition: all 0.15s;
+      white-space: nowrap;
+    }
+    .payment-btn.active {
+      border-color: #5F56AF;
+      background: #5F56AF;
+      color: #fff;
+    }
+
+    /* ── Tag de pago en historial ── */
+    .payment-tag {
+      color: var(--text-muted, #888);
+      font-size: 0.75rem;
+    }
+
+    /* ── Badge de pago en detalle modal ── */
+    .detail-payment-badge {
+      display: inline-block;
+      background: #5F56AF18;
+      color: #5F56AF;
+      border-radius: 20px;
+      padding: 4px 12px;
+      font-size: 0.82rem;
+      font-weight: 600;
+      margin-bottom: 12px;
+    }
+
+    /* ── Vista Zelle ── */
+    .zelle-summary-card {
+      background: linear-gradient(135deg, #5F56AF, #4F46A0);
+      color: #fff;
+      border-radius: 16px;
+      padding: 20px;
+      margin: 0 0 16px 0;
+      text-align: center;
+    }
+    .zelle-summary-label {
+      font-size: 0.82rem;
+      opacity: 0.85;
+      margin-bottom: 4px;
+    }
+    .zelle-summary-amount {
+      font-size: 2rem;
+      font-weight: 700;
+      letter-spacing: -0.5px;
+    }
+    .zelle-summary-count {
+      font-size: 0.8rem;
+      opacity: 0.75;
+      margin-top: 4px;
+    }
+
+    .zelle-day-group {
+      margin-bottom: 16px;
+    }
+    .zelle-day-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 6px 4px;
+      border-bottom: 1px solid var(--border, #e0e0e0);
+      margin-bottom: 6px;
+    }
+    .zelle-day-label {
+      font-size: 0.8rem;
+      font-weight: 600;
+      color: var(--text-muted, #888);
+      text-transform: capitalize;
+    }
+    .zelle-day-total {
+      font-size: 0.85rem;
+      font-weight: 700;
+      color: #5F56AF;
+    }
+
+    .zelle-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 10px 8px;
+      border-radius: 10px;
+      cursor: pointer;
+      transition: background 0.1s;
+      margin-bottom: 4px;
+    }
+    .zelle-row:hover, .zelle-row:active {
+      background: var(--surface-hover, #f5f5f5);
+    }
+    .zelle-row-left {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+    .zelle-time {
+      font-size: 0.75rem;
+      color: var(--text-muted, #888);
+    }
+    .zelle-items {
+      font-size: 0.85rem;
+      color: var(--text, #333);
+    }
+    .zelle-note {
+      font-size: 0.75rem;
+      color: var(--text-muted, #888);
+      font-style: italic;
+    }
+    .zelle-amount {
+      font-size: 1rem;
+      font-weight: 700;
+      color: var(--text, #333);
+    }
+  </style>
+
   <!-- External libs (cargadas primero) -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
@@ -76,6 +210,7 @@
   <script src="js/views/catalog.js"></script>
   <script src="js/views/expenses.js"></script>
   <script src="js/views/monthly-report.js"></script>
+  <script src="js/views/zelle.js"></script>
   <script src="js/app.js"></script>
 
 </body>

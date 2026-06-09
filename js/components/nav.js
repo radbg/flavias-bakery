@@ -36,6 +36,7 @@ FB.Nav = (function() {
       var menu = document.createElement('div');
       menu.id = 'more-menu';
       menu.innerHTML =
+        '<button data-view="zelle">🏦 Control Zelle</button>' +
         '<button data-view="expenses">💸 Gastos extras</button>' +
         '<button data-view="monthly-report">📈 Resumen mensual</button>' +
         '<div class="more-divider"></div>' +
