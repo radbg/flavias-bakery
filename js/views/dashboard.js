@@ -78,7 +78,7 @@ FB.Dashboard = (function() {
         '</div>' +
       '</div>' +
 
-      '<div class="card"><div class="card-title">Ingresos por día</div><div class="chart-wrap"><canvas id="revenue-chart"></canvas></div></div>' +
+      '<div class="card"><div class="card-title">Ingresos por día</div><div class="chart-wrap privacy-target"><canvas id="revenue-chart"></canvas></div></div>' +
       '<div class="card"><div class="card-title">Top 5 productos del mes</div>' + topHTML + '</div>';
 
     renderChart(daily);
