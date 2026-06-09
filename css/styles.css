@@ -387,6 +387,31 @@ a { color: inherit; }
 .summary-total { font-weight: 700; font-size: 15px; color: var(--text); }
 .summary-net { font-weight: 700; font-size: 16px; color: var(--purple); padding-top: 8px; }
 
+/* ── Edición de venta en el modal ── */
+.edit-items { display: flex; flex-direction: column; gap: 6px; margin-bottom: 4px; }
+.edit-item-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 8px 10px;
+  background: var(--purple-bg);
+  border-radius: 10px;
+}
+.edit-item-info { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.edit-item-name { font-size: 14px; font-weight: 500; }
+.edit-item-disc-wrap { font-size: 12px; color: var(--text-light); display: flex; align-items: center; gap: 3px; }
+.edit-item-disc {
+  width: 42px; border: 1px solid var(--border); border-radius: 6px;
+  padding: 2px 4px; text-align: right; font-size: 13px; font-weight: 600;
+}
+.edit-item-counter { display: flex; align-items: center; gap: 6px; flex-shrink: 0; }
+.edit-item-remove {
+  background: none; border: none; cursor: pointer; font-size: 15px;
+  padding: 4px; opacity: 0.6; border-radius: 6px;
+}
+.edit-item-remove:hover, .edit-item-remove:active { opacity: 1; }
+
 /* ─── Alert ──────────────────────────────────────────────────────────────────── */
 .alert {
   padding: 12px 14px;

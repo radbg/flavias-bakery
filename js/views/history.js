@@ -200,9 +200,7 @@ FB.History = (function() {
     var overlay = FB.Modal.open(html, null, { hideFooter: true });
     overlay.querySelector('#det-cancel').addEventListener('click', function() { FB.Modal.close(); });
     overlay.querySelector('#det-edit').addEventListener('click', function() {
-      FB.Modal.close();
-      var go = _navigate || (FB.App && FB.App.navigate);
-      if (go) go('register', { editSaleId: saleId });
+      showEditForm(saleId, products);   // editar aquí mismo, sin salir del historial
     });
     overlay.querySelector('#det-delete').addEventListener('click', function() {
       FB.Modal.confirm('¿Eliminar esta venta?', function() {
@@ -211,6 +209,170 @@ FB.History = (function() {
         refresh();
       });
     });
+  }
+
+  // ── Edición en el mismo modal (sin ir a la pestaña de Registrar Venta) ────────
+  function showEditForm(saleId, products) {
+    var sale = FB.Storage.getSales().find(function(s) { return s.id === saleId; });
+    if (!sale) return;
+    var map = {};
+    products.forEach(function(p) { map[p.id] = p; });
+
+    var state = {
+      items: (sale.items || []).map(function(it) {
+        var p = map[it.productId];
+        return {
+          productId:   it.productId,
+          qty:         Number(it.qty) || 0,
+          unitPrice:   (it.unitPrice !== undefined) ? it.unitPrice : (p ? p.price : 0),
+          unitCost:    (it.unitCost  !== undefined) ? it.unitCost  : (p ? p.cost  : 0),
+          discountPct: Number(it.discountPct) || 0,
+          name:        p ? p.name : '(producto eliminado)'
+        };
+      }),
+      date:          sale.date,
+      time:          sale.time || '00:00',
+      delivery:      Number(sale.delivery) || 0,
+      notes:         sale.notes || '',
+      paymentMethod: sale.paymentMethod || 'efectivo',
+      cashAmount:    sale.cashAmount  || 0,
+      movilAmount:   sale.movilAmount || 0
+    };
+
+    var activeProducts = products.filter(function(p) { return p.active; });
+    var overlay = FB.Modal.open('<div></div>', null, { hideFooter: true });
+
+    // Capturar valores de inputs antes de re-renderizar
+    function readInputs() {
+      var d  = document.getElementById('edit-date');     if (d)  state.date     = d.value;
+      var t  = document.getElementById('edit-time');     if (t)  state.time     = t.value;
+      var dl = document.getElementById('edit-delivery'); if (dl) state.delivery = parseFloat(dl.value) || 0;
+      var nt = document.getElementById('edit-notes');    if (nt) state.notes    = nt.value;
+      var ca = document.getElementById('edit-cash');     if (ca) state.cashAmount  = parseFloat(ca.value) || 0;
+      var mv = document.getElementById('edit-movil');    if (mv) state.movilAmount = parseFloat(mv.value) || 0;
+      overlay.querySelectorAll('.edit-item-disc').forEach(function(inp) {
+        var i = +inp.dataset.idx;
+        if (state.items[i]) state.items[i].discountPct = Math.min(100, Math.max(0, parseFloat(inp.value) || 0));
+      });
+    }
+
+    function render() {
+      var t = FB.Calc.saleTotals({ items: state.items, delivery: state.delivery }, products);
+
+      var itemsHTML = state.items.map(function(it, idx) {
+        return '<div class="edit-item-row">' +
+          '<div class="edit-item-info">' +
+            '<span class="edit-item-name">' + it.name + '</span>' +
+            '<span class="edit-item-disc-wrap">promo <input type="number" class="edit-item-disc" data-idx="' + idx + '" min="0" max="100" value="' + (it.discountPct || '') + '" placeholder="0">%</span>' +
+          '</div>' +
+          '<div class="edit-item-counter">' +
+            '<button class="counter-btn edit-dec" data-idx="' + idx + '">−</button>' +
+            '<span class="counter-qty">' + it.qty + '</span>' +
+            '<button class="counter-btn edit-inc" data-idx="' + idx + '">+</button>' +
+            '<button class="edit-item-remove" data-idx="' + idx + '" title="Quitar">🗑</button>' +
+          '</div>' +
+        '</div>';
+      }).join('');
+
+      var addOptions = '<option value="">+ Agregar producto…</option>' + activeProducts.map(function(p) {
+        return '<option value="' + p.id + '">' + p.name + ' (' + FB.Calc.fmt(p.price) + ')</option>';
+      }).join('');
+
+      var pmBtns = [['efectivo','💵<br>Efectivo'],['pago-movil','📱<br>Pago Móvil'],['zelle','🏦<br>Zelle'],['mixto','💵+📱<br>Mixto']].map(function(m) {
+        return '<button class="payment-btn' + (state.paymentMethod === m[0] ? ' active' : '') + '" data-method="' + m[0] + '">' + m[1] + '</button>';
+      }).join('');
+
+      var splitHTML = state.paymentMethod === 'mixto' ?
+        '<div class="split-cols" style="margin-bottom:12px">' +
+          '<div class="split-col"><span class="split-label">💵 Efectivo $</span><input type="number" id="edit-cash" class="form-input split-input" min="0" step="0.01" value="' + (state.cashAmount || '') + '" placeholder="0.00"></div>' +
+          '<div class="split-col"><span class="split-label">📱 Pago Móvil $</span><input type="number" id="edit-movil" class="form-input split-input" min="0" step="0.01" value="' + (state.movilAmount || '') + '" placeholder="0.00"></div>' +
+          '<div class="split-col split-col-total"><span class="split-label">Total $</span><span class="split-value split-value-total">' + FB.Calc.fmt(t.total) + '</span></div>' +
+        '</div>' : '';
+
+      var html =
+        '<h3 class="modal-title">✏️ Editar venta</h3>' +
+        '<div class="form-row">' +
+          '<div class="form-section"><label class="form-label">Fecha</label><input type="date" id="edit-date" class="form-input" value="' + state.date + '"></div>' +
+          '<div class="form-section"><label class="form-label">Hora</label><input type="time" id="edit-time" class="form-input" value="' + state.time + '"></div>' +
+        '</div>' +
+        '<label class="form-label">Forma de pago</label>' +
+        '<div class="payment-methods" style="margin-bottom:12px">' + pmBtns + '</div>' +
+        splitHTML +
+        '<label class="form-label">Productos</label>' +
+        '<div class="edit-items">' + (itemsHTML || '<p class="empty-msg">Sin productos</p>') + '</div>' +
+        '<select id="edit-add-product" class="form-input" style="margin:8px 0">' + addOptions + '</select>' +
+        '<div class="form-section"><label class="form-label">Delivery $</label><input type="number" id="edit-delivery" class="form-input" min="0" step="0.01" value="' + state.delivery + '"></div>' +
+        '<div class="form-section"><label class="form-label">Notas</label><textarea id="edit-notes" class="form-input" rows="2" placeholder="Opcional...">' + state.notes + '</textarea></div>' +
+        '<div class="sale-summary">' +
+          '<div class="summary-row"><span>Ingreso productos</span><span>' + FB.Calc.fmt(t.revenue) + '</span></div>' +
+          '<div class="summary-row"><span>Delivery (repartidor)</span><span>' + FB.Calc.fmt(t.delivery) + '</span></div>' +
+          '<div class="summary-row summary-total"><span>Total a cobrar</span><span>' + FB.Calc.fmt(t.total) + '</span></div>' +
+          '<div class="summary-row summary-net"><span>Ganancia neta</span><span>' + FB.Calc.fmt(t.net) + '</span></div>' +
+        '</div>' +
+        '<div class="modal-footer">' +
+          '<button class="btn btn-ghost" id="edit-cancel">Cancelar</button>' +
+          '<button class="btn btn-primary" id="edit-save">ACTUALIZAR VENTA</button>' +
+        '</div>';
+
+      overlay.querySelector('.modal-body').innerHTML = html;
+      attach();
+    }
+
+    function attach() {
+      overlay.querySelectorAll('.payment-btn').forEach(function(b) {
+        b.addEventListener('click', function() { readInputs(); state.paymentMethod = b.dataset.method; render(); });
+      });
+      overlay.querySelectorAll('.edit-inc').forEach(function(b) {
+        b.addEventListener('click', function() { readInputs(); state.items[+b.dataset.idx].qty++; render(); });
+      });
+      overlay.querySelectorAll('.edit-dec').forEach(function(b) {
+        b.addEventListener('click', function() { readInputs(); var i = +b.dataset.idx; state.items[i].qty = Math.max(1, state.items[i].qty - 1); render(); });
+      });
+      overlay.querySelectorAll('.edit-item-remove').forEach(function(b) {
+        b.addEventListener('click', function() { readInputs(); state.items.splice(+b.dataset.idx, 1); render(); });
+      });
+      overlay.querySelectorAll('.edit-item-disc').forEach(function(inp) {
+        inp.addEventListener('change', function() { readInputs(); render(); });
+      });
+      var dl = overlay.querySelector('#edit-delivery');
+      if (dl) dl.addEventListener('change', function() { readInputs(); render(); });
+      var addSel = overlay.querySelector('#edit-add-product');
+      if (addSel) addSel.addEventListener('change', function() {
+        var pid = addSel.value; if (!pid) return;
+        readInputs();
+        var existing = state.items.find(function(x) { return x.productId === pid; });
+        if (existing) { existing.qty++; }
+        else {
+          var p = map[pid];
+          state.items.push({ productId: pid, qty: 1, unitPrice: p.price, unitCost: p.cost, discountPct: 0, name: p.name });
+        }
+        render();
+      });
+      overlay.querySelector('#edit-cancel').addEventListener('click', function() { FB.Modal.close(); });
+      overlay.querySelector('#edit-save').addEventListener('click', function() {
+        readInputs();
+        if (!state.items.length) { FB.Toast.show('Agrega al menos un producto', 'error'); return; }
+        var saleData = {
+          date:          state.date,
+          time:          state.time,
+          items:         state.items.map(function(it) {
+            return { productId: it.productId, qty: Number(it.qty), unitPrice: it.unitPrice, unitCost: it.unitCost, discountPct: Number(it.discountPct) || 0 };
+          }),
+          delivery:      state.delivery,
+          discountPct:   0,
+          notes:         state.notes,
+          paymentMethod: state.paymentMethod,
+          cashAmount:    state.paymentMethod === 'mixto' ? state.cashAmount  : null,
+          movilAmount:   state.paymentMethod === 'mixto' ? state.movilAmount : null
+        };
+        FB.Storage.updateSale(saleId, saleData);
+        FB.Toast.show('¡Venta actualizada! ✅');
+        FB.Modal.close();
+        refresh();
+      });
+    }
+
+    render();
   }
 
   return {
