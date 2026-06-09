@@ -1,4 +1,4 @@
-const CACHE_NAME = 'flavias-bakery-v6';
+const CACHE_NAME = 'flavias-bakery-v7';
 
 const CDN_URLS = [
   'https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js',
@@ -26,6 +26,7 @@ const APP_SHELL = [
   './js/views/catalog.js',
   './js/views/expenses.js',
   './js/views/monthly-report.js',
+  './js/views/zelle.js',
   './js/firebase-config.js',
   './js/app.js',
   './icons/icon-192.png',
