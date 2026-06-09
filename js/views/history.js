@@ -10,6 +10,7 @@ FB.History = (function() {
     'efectivo':      '💵 Efectivo',
     'pago-movil':    '📱 Pago Móvil',
     'zelle':         '🏦 Zelle',
+    'mixto':         '💵+📱 Mixto',
     'transferencia': '🔁 Transf.'
   };
 
@@ -138,6 +139,7 @@ FB.History = (function() {
     'efectivo':      '💵 Efectivo',
     'pago-movil':    '📱 Pago Móvil',
     'zelle':         '🏦 Zelle',
+    'mixto':         '💵+📱 Mixto (Efectivo + Pago Móvil)',
     'transferencia': '🔁 Transferencia bancaria'
   };
 

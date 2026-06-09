@@ -304,7 +304,26 @@ document.addEventListener('DOMContentLoaded', function() {
       firebase.auth().signInWithEmailAndPassword(email, pass)
         .catch(function(e) {
           btn.textContent = 'Entrar';
-          showAuthError('Correo o contraseña incorrectos');
+          var msg;
+          switch (e.code) {
+            case 'auth/user-not-found':
+              msg = 'No existe una cuenta con ese correo. ¿Olvidaste registrarte?'; break;
+            case 'auth/wrong-password':
+              msg = 'Contraseña incorrecta'; break;
+            case 'auth/invalid-credential':
+              msg = 'Correo o contraseña incorrectos'; break;
+            case 'auth/invalid-email':
+              msg = 'Formato de correo inválido'; break;
+            case 'auth/too-many-requests':
+              msg = 'Demasiados intentos fallidos. Espera unos minutos o restablece tu contraseña'; break;
+            case 'auth/operation-not-allowed':
+              msg = 'Error de configuración: activa "Email/Password" en Firebase Console → Authentication → Sign-in method'; break;
+            case 'auth/network-request-failed':
+              msg = 'Sin conexión. Revisa tu internet e intenta de nuevo'; break;
+            default:
+              msg = 'Error al iniciar sesión (' + e.code + ')';
+          }
+          showAuthError(msg);
         });
     });
 

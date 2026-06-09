@@ -95,7 +95,7 @@ FB.RegisterSale = (function() {
   function loadForEdit(sale) {
     editingId  = sale.id;
     quantities = {};
-    sale.items.forEach(function(item) { quantities[item.productId] = item.qty; });
+    (sale.items || []).forEach(function(item) { quantities[item.productId] = item.qty; });
     document.getElementById('sale-date').value     = sale.date;
     document.getElementById('sale-time').value     = sale.time || '00:00';
     document.getElementById('sale-delivery').value = sale.delivery    || 0;
@@ -157,14 +157,18 @@ FB.RegisterSale = (function() {
 
     if (editingId) {
       FB.Storage.updateSale(editingId, saleData);
+      quantities = {}; editingId = null;
       FB.Toast.show('¡Venta actualizada! ✅');
+      // Volver al historial para que el usuario vea la venta actualizada
+      if (window.FB && FB.App) {
+        FB.App.navigate('history');
+      }
     } else {
       FB.Storage.addSale(saleData);
       FB.Toast.show('¡Venta guardada! 🎉');
+      quantities = {}; editingId = null;
+      FB.RegisterSale.render(document.getElementById('main-content'));
     }
-
-    quantities = {}; editingId = null;
-    FB.RegisterSale.render(document.getElementById('main-content'));
   }
 
   return {
