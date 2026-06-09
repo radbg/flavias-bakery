@@ -44,11 +44,12 @@ FB.Calc = (function() {
       if (!hasItemDisc && saleDisc > 0) revenue = revenue * (1 - saleDisc / 100);
       var delivery = Number(sale.delivery) || 0;
       return {
-        revenue:     revenue,
+        revenue:     revenue,                 // ingreso por productos (de Flavia)
         cost:        cost,
-        delivery:    delivery,
+        delivery:    delivery,                // se cobra pero va al repartidor
+        total:       revenue + delivery,      // total que paga el cliente
         grossProfit: revenue - cost,
-        net:         revenue - cost + delivery
+        net:         revenue - cost           // ganancia neta SIN delivery
       };
     },
 
@@ -80,12 +81,14 @@ FB.Calc = (function() {
 
       var extraExpenses = me.reduce(function(s, e) { return s + Number(e.amount); }, 0);
       var grossProfit   = revenue - cost;
-      var netProfit     = grossProfit + delivery - extraExpenses;
+      // El delivery NO entra en la ganancia: es dinero del repartidor
+      var netProfit     = grossProfit - extraExpenses;
       // Margen de contribución = (ingresos - costos variables) / ingresos
       var contributionMargin = revenue > 0 ? (revenue - cost) / revenue : 0;
 
       return {
         revenue: revenue, cost: cost, delivery: delivery,
+        totalIncome: revenue + delivery,
         grossProfit: grossProfit, extraExpenses: extraExpenses,
         netProfit: netProfit,
         marginPct: revenue > 0 ? (netProfit / revenue) * 100 : 0,

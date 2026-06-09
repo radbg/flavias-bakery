@@ -384,6 +384,7 @@ a { color: inherit; }
   border-bottom: 1px solid var(--border);
 }
 .summary-row:last-child { border-bottom: none; }
+.summary-total { font-weight: 700; font-size: 15px; color: var(--text); }
 .summary-net { font-weight: 700; font-size: 16px; color: var(--purple); padding-top: 8px; }
 
 /* ─── Alert ──────────────────────────────────────────────────────────────────── */

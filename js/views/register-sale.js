@@ -24,13 +24,14 @@ FB.RegisterSale = (function() {
 
     var t = FB.Calc.saleTotals({ items: items, delivery: delivery }, products);
 
-    document.getElementById('s-revenue').textContent = FB.Calc.fmt(t.revenue);
-    document.getElementById('s-cost').textContent    = FB.Calc.fmt(t.cost);
-    document.getElementById('s-gross').textContent   = FB.Calc.fmt(t.grossProfit);
-    document.getElementById('s-net').textContent     = FB.Calc.fmt(t.net);
+    document.getElementById('s-revenue').textContent  = FB.Calc.fmt(t.revenue);
+    document.getElementById('s-cost').textContent     = FB.Calc.fmt(t.cost);
+    document.getElementById('s-delivery').textContent = FB.Calc.fmt(t.delivery);
+    document.getElementById('s-total').textContent    = FB.Calc.fmt(t.total);
+    document.getElementById('s-net').textContent      = FB.Calc.fmt(t.net);
 
     // Actualizar totales en el panel de pago mixto (lo que cobra el cliente = ingreso + delivery)
-    updateSplitDisplay(t.revenue + t.delivery);
+    updateSplitDisplay(t.total);
   }
 
   function updateSplitDisplay(total) {
@@ -264,10 +265,11 @@ FB.RegisterSale = (function() {
           '<textarea id="sale-notes" class="form-input" rows="2" placeholder="Opcional..."></textarea></div>' +
 
         '<div class="sale-summary">' +
-          '<div class="summary-row"><span>Ingreso</span><span id="s-revenue">$0.00</span></div>' +
+          '<div class="summary-row"><span>Ingreso productos</span><span id="s-revenue">$0.00</span></div>' +
           '<div class="summary-row"><span>Costo</span><span id="s-cost">$0.00</span></div>' +
-          '<div class="summary-row"><span>Ganancia bruta</span><span id="s-gross">$0.00</span></div>' +
-          '<div class="summary-row summary-net"><span>Neto (+ delivery)</span><span id="s-net">$0.00</span></div>' +
+          '<div class="summary-row"><span>Delivery (para repartidor)</span><span id="s-delivery">$0.00</span></div>' +
+          '<div class="summary-row summary-total"><span>Total a cobrar</span><span id="s-total">$0.00</span></div>' +
+          '<div class="summary-row summary-net"><span>Ganancia neta</span><span id="s-net">$0.00</span></div>' +
         '</div>' +
 
         '<button class="btn btn-primary btn-full btn-xl" id="save-sale-btn">GUARDAR VENTA</button>';

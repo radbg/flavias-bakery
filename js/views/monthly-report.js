@@ -38,14 +38,14 @@ FB.MonthlyReport = (function() {
       // ── Estado de resultados ──
       '<div class="card">' +
         '<div class="card-title">Estado de resultados</div>' +
-        '<div class="report-row"><span>Ingresos totales</span><span>' + FB.Calc.fmt(s.revenue) + '</span></div>' +
+        '<div class="report-row"><span>Ingresos por productos</span><span>' + FB.Calc.fmt(s.revenue) + '</span></div>' +
         '<div class="report-row"><span>Costo de productos</span><span>−' + FB.Calc.fmt(s.cost) + '</span></div>' +
         '<div class="report-row"><span>Ganancia bruta</span><span>' + FB.Calc.fmt(s.grossProfit) + '</span></div>' +
-        '<div class="report-row"><span>Delivery</span><span>+' + FB.Calc.fmt(s.delivery) + '</span></div>' +
         '<div class="report-row"><span>Gastos extras variables</span><span>−' + FB.Calc.fmt(s.extraExpenses) + '</span></div>' +
         '<div class="report-row report-row-net"><span>Ganancia neta</span>' +
           '<span class="' + (s.netProfit >= 0 ? 'positive' : 'negative') + '">' + FB.Calc.fmt(s.netProfit) + '</span></div>' +
         '<div class="report-row muted"><span>Margen neto</span><span>' + FB.Calc.fmtPct(s.marginPct) + '</span></div>' +
+        '<div class="report-row muted"><span>Delivery cobrado (para repartidor, no es ganancia)</span><span>' + FB.Calc.fmt(s.delivery) + '</span></div>' +
       '</div>' +
 
       // ── Punto de equilibrio ──
