@@ -26,8 +26,8 @@ FB.RegisterSale = (function() {
     var badge = document.getElementById('discount-badge');
     if (badge) badge.style.display = discountPct > 0 ? 'inline-block' : 'none';
 
-    // Actualizar totales en el panel de pago mixto
-    updateSplitDisplay(t.net);
+    // Actualizar totales en el panel de pago mixto (lo que cobra el cliente = ingreso + delivery)
+    updateSplitDisplay(t.revenue + t.delivery);
   }
 
   function updateSplitDisplay(total) {
