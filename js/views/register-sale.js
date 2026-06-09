@@ -243,7 +243,7 @@ FB.RegisterSale = (function() {
               '<input type="number" id="split-cash" class="form-input split-input" min="0" step="0.01" placeholder="0.00">' +
             '</div>' +
             '<div class="split-col">' +
-              '<span class="split-label">📱 Pago Móvil Bs.</span>' +
+              '<span class="split-label">📱 Pago Móvil</span>' +
               '<input type="number" id="split-movil" class="form-input split-input" min="0" step="1" placeholder="0">' +
             '</div>' +
             '<div class="split-col split-col-total">' +
