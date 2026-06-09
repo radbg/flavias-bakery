@@ -283,6 +283,29 @@ document.addEventListener('DOMContentLoaded', function() {
     var loginForm    = document.getElementById('login-form');
     var registerForm = document.getElementById('register-form');
 
+    document.getElementById('forgot-btn').addEventListener('click', function() {
+      var email = document.getElementById('login-email').value.trim();
+      if (!email) { showAuthError('Escribe tu correo arriba y luego toca este botón'); return; }
+      clearAuthError();
+      var btn = this;
+      btn.textContent = 'Enviando...';
+      btn.disabled = true;
+      firebase.auth().sendPasswordResetEmail(email)
+        .then(function() {
+          btn.textContent = '✅ Correo enviado';
+          showAuthError('Revisa tu bandeja de entrada (o spam) para restablecer tu contraseña');
+        })
+        .catch(function(e) {
+          btn.textContent = 'Olvidé mi contraseña';
+          btn.disabled = false;
+          if (e.code === 'auth/user-not-found') {
+            showAuthError('No existe una cuenta con ese correo');
+          } else {
+            showAuthError('Error al enviar: ' + e.message);
+          }
+        });
+    });
+
     document.getElementById('show-register-btn').addEventListener('click', function() {
       clearAuthError();
       loginForm.style.display    = 'none';
