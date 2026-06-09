@@ -153,9 +153,13 @@ FB.History = (function() {
     var itemsHTML = sale.items.map(function(item) {
       var p = map[item.productId];
       if (!p) return '';
-      return '<tr><td>' + p.name + '</td><td class="text-center">' + item.qty +
-        '</td><td class="text-right">' + FB.Calc.fmt(p.price) +
-        '</td><td class="text-right">' + FB.Calc.fmt(p.price * item.qty) + '</td></tr>';
+      var unitPrice = (item.unitPrice !== undefined) ? item.unitPrice : p.price;
+      var disc      = Number(item.discountPct) || 0;
+      var lineTotal = unitPrice * item.qty * (1 - disc / 100);
+      var nameCell  = p.name + (disc > 0 ? ' <span class="badge badge-pink">−' + disc + '%</span>' : '');
+      return '<tr><td>' + nameCell + '</td><td class="text-center">' + item.qty +
+        '</td><td class="text-right">' + FB.Calc.fmt(unitPrice) +
+        '</td><td class="text-right">' + FB.Calc.fmt(lineTotal) + '</td></tr>';
     }).join('');
 
     var dateObj = new Date(sale.date + 'T00:00:00');

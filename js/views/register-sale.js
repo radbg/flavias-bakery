@@ -2,6 +2,7 @@ var FB = window.FB || {};
 
 FB.RegisterSale = (function() {
   var quantities = {};
+  var discounts  = {};   // descuento % por producto (solo productos en promoción)
   var editingId  = null;
 
   function nowTime() {
@@ -9,22 +10,24 @@ FB.RegisterSale = (function() {
     return String(d.getHours()).padStart(2,'0') + ':' + String(d.getMinutes()).padStart(2,'0');
   }
 
-  function updateSummary() {
-    var products    = FB.Storage.getProducts();
-    var delivery    = parseFloat(document.getElementById('sale-delivery').value)  || 0;
-    var discountPct = parseFloat(document.getElementById('sale-discount').value)  || 0;
-    var items = Object.keys(quantities).filter(function(id) { return quantities[id] > 0; })
-      .map(function(id) { return { productId: id, qty: quantities[id] }; });
+  function buildItems() {
+    return Object.keys(quantities).filter(function(id) { return quantities[id] > 0; })
+      .map(function(id) {
+        return { productId: id, qty: quantities[id], discountPct: Number(discounts[id]) || 0 };
+      });
+  }
 
-    var t = FB.Calc.saleTotals({ items: items, delivery: delivery, discountPct: discountPct }, products);
+  function updateSummary() {
+    var products = FB.Storage.getProducts();
+    var delivery = parseFloat(document.getElementById('sale-delivery').value) || 0;
+    var items    = buildItems();
+
+    var t = FB.Calc.saleTotals({ items: items, delivery: delivery }, products);
 
     document.getElementById('s-revenue').textContent = FB.Calc.fmt(t.revenue);
     document.getElementById('s-cost').textContent    = FB.Calc.fmt(t.cost);
     document.getElementById('s-gross').textContent   = FB.Calc.fmt(t.grossProfit);
     document.getElementById('s-net').textContent     = FB.Calc.fmt(t.net);
-
-    var badge = document.getElementById('discount-badge');
-    if (badge) badge.style.display = discountPct > 0 ? 'inline-block' : 'none';
 
     // Actualizar totales en el panel de pago mixto (lo que cobra el cliente = ingreso + delivery)
     updateSplitDisplay(t.revenue + t.delivery);
@@ -40,24 +43,45 @@ FB.RegisterSale = (function() {
     quantities[id] = Math.max(0, (quantities[id] || 0) + delta);
     var row = document.querySelector('.product-row[data-id="' + id + '"]');
     if (!row) return;
-    row.classList.toggle('selected', quantities[id] > 0);
+    var active = quantities[id] > 0;
+    row.classList.toggle('selected', active);
     row.querySelector('.counter-qty').textContent = quantities[id];
     row.querySelector('.btn-dec').disabled        = quantities[id] === 0;
+
+    // Mostrar/ocultar la fila de descuento promo; al deseleccionar, limpiar el descuento
+    var discRow = row.querySelector('.product-discount-row');
+    if (discRow) discRow.style.display = active ? 'flex' : 'none';
+    if (!active) {
+      delete discounts[id];
+      var discInput = row.querySelector('.pd-input');
+      if (discInput) discInput.value = '';
+    }
     updateSummary();
   }
 
   function productRowHTML(p) {
-    var qty = quantities[p.id] || 0;
+    var qty  = quantities[p.id] || 0;
+    var disc = discounts[p.id] || '';
     return '<div class="product-row' + (qty > 0 ? ' selected' : '') +
       '" data-id="' + p.id + '" data-name="' + p.name.toLowerCase() + '">' +
-      '<div class="product-info"><span class="product-name">' + p.name + '</span>' +
-      (p.isSpecial ? '<span class="badge badge-pink">' + p.specialLabel + '</span>' : '') +
-      '<span class="product-price">' + FB.Calc.fmt(p.price) + '</span></div>' +
-      '<div class="product-counter">' +
-        '<button class="counter-btn btn-dec"' + (qty === 0 ? ' disabled' : '') + '>−</button>' +
-        '<span class="counter-qty">' + qty + '</span>' +
-        '<button class="counter-btn btn-inc">+</button>' +
-      '</div></div>';
+      '<div class="product-row-main">' +
+        '<div class="product-info"><span class="product-name">' + p.name + '</span>' +
+        (p.isSpecial ? '<span class="badge badge-pink">' + p.specialLabel + '</span>' : '') +
+        '<span class="product-price">' + FB.Calc.fmt(p.price) + '</span></div>' +
+        '<div class="product-counter">' +
+          '<button class="counter-btn btn-dec"' + (qty === 0 ? ' disabled' : '') + '>−</button>' +
+          '<span class="counter-qty">' + qty + '</span>' +
+          '<button class="counter-btn btn-inc">+</button>' +
+        '</div>' +
+      '</div>' +
+      '<div class="product-discount-row" style="display:' + (qty > 0 ? 'flex' : 'none') + '">' +
+        '<span class="pd-label">🏷️ Descuento promo</span>' +
+        '<div class="pd-input-wrap">' +
+          '<input type="number" class="pd-input" data-disc-id="' + p.id + '" min="0" max="100" step="1" value="' + disc + '" placeholder="0">' +
+          '<span class="pd-pct">%</span>' +
+        '</div>' +
+      '</div>' +
+    '</div>';
   }
 
   function renderProductList() {
@@ -86,17 +110,29 @@ FB.RegisterSale = (function() {
     list.querySelectorAll('.product-row').forEach(function(row) {
       row.querySelector('.btn-dec').addEventListener('click', function() { changeQty(row.dataset.id, -1); });
       row.querySelector('.btn-inc').addEventListener('click', function() { changeQty(row.dataset.id, 1); });
+      var discInput = row.querySelector('.pd-input');
+      if (discInput) {
+        discInput.addEventListener('input', function() {
+          var id  = discInput.dataset.discId;
+          var val = Math.min(100, Math.max(0, parseFloat(discInput.value) || 0));
+          if (val > 0) discounts[id] = val; else delete discounts[id];
+          updateSummary();
+        });
+      }
     });
   }
 
   function loadForEdit(sale) {
     editingId  = sale.id;
     quantities = {};
-    (sale.items || []).forEach(function(item) { quantities[item.productId] = item.qty; });
+    discounts  = {};
+    (sale.items || []).forEach(function(item) {
+      quantities[item.productId] = item.qty;
+      if (Number(item.discountPct) > 0) discounts[item.productId] = Number(item.discountPct);
+    });
     document.getElementById('sale-date').value     = sale.date;
     document.getElementById('sale-time').value     = sale.time || '00:00';
     document.getElementById('sale-delivery').value = sale.delivery    || 0;
-    document.getElementById('sale-discount').value = sale.discountPct || 0;
     document.getElementById('sale-notes').value    = sale.notes       || '';
 
     // Restaurar forma de pago
@@ -128,10 +164,11 @@ FB.RegisterSale = (function() {
       .map(function(id) {
         var p = productMap[id];
         return {
-          productId: id,
-          qty:       Number(quantities[id]),
-          unitPrice: p ? p.price : 0,
-          unitCost:  p ? p.cost  : 0
+          productId:   id,
+          qty:         Number(quantities[id]),
+          unitPrice:   p ? p.price : 0,
+          unitCost:    p ? p.cost  : 0,
+          discountPct: Number(discounts[id]) || 0
         };
       });
     if (!items.length) { FB.Toast.show('Agrega al menos un producto', 'error'); return; }
@@ -139,7 +176,6 @@ FB.RegisterSale = (function() {
     var date          = document.getElementById('sale-date').value;
     var time          = document.getElementById('sale-time').value;
     var delivery      = parseFloat(document.getElementById('sale-delivery').value)  || 0;
-    var discountPct   = parseFloat(document.getElementById('sale-discount').value)  || 0;
     var notes         = document.getElementById('sale-notes').value.trim();
     var paymentMethod = getPaymentMethod();
     var cashAmount    = paymentMethod === 'mixto'
@@ -151,14 +187,14 @@ FB.RegisterSale = (function() {
 
     var saleData = {
       date: date, time: time, items: items,
-      delivery: delivery, discountPct: discountPct,
+      delivery: delivery, discountPct: 0,
       notes: notes, paymentMethod: paymentMethod,
       cashAmount: cashAmount, movilAmount: movilAmount
     };
 
     if (editingId) {
       FB.Storage.updateSale(editingId, saleData);
-      quantities = {}; editingId = null;
+      quantities = {}; discounts = {}; editingId = null;
       FB.Toast.show('¡Venta actualizada! ✅');
       // Volver al historial para que el usuario vea la venta actualizada
       if (window.FB && FB.App) {
@@ -167,7 +203,7 @@ FB.RegisterSale = (function() {
     } else {
       FB.Storage.addSale(saleData);
       FB.Toast.show('¡Venta guardada! 🎉');
-      quantities = {}; editingId = null;
+      quantities = {}; discounts = {}; editingId = null;
       FB.RegisterSale.render(document.getElementById('main-content'));
     }
   }
@@ -176,6 +212,7 @@ FB.RegisterSale = (function() {
     render: function(container, params) {
       params     = params || {};
       quantities = {};
+      discounts  = {};
       editingId  = null;
 
       var todayStr = FB.Calc.today();
@@ -220,12 +257,8 @@ FB.RegisterSale = (function() {
 
         '<div id="products-list"></div>' +
 
-        '<div class="form-row">' +
-          '<div class="form-section"><label class="form-label">Delivery $</label>' +
-            '<input type="number" id="sale-delivery" class="form-input" min="0" step="0.01" value="0" placeholder="0.00"></div>' +
-          '<div class="form-section"><label class="form-label">Descuento % <span id="discount-badge" class="badge badge-pink" style="display:none">Promo activa</span></label>' +
-            '<input type="number" id="sale-discount" class="form-input" min="0" max="100" step="1" value="0" placeholder="0"></div>' +
-        '</div>' +
+        '<div class="form-section"><label class="form-label">Delivery $</label>' +
+          '<input type="number" id="sale-delivery" class="form-input" min="0" step="0.01" value="0" placeholder="0.00"></div>' +
 
         '<div class="form-section"><label class="form-label">Notas</label>' +
           '<textarea id="sale-notes" class="form-input" rows="2" placeholder="Opcional..."></textarea></div>' +
@@ -276,7 +309,6 @@ FB.RegisterSale = (function() {
       });
 
       document.getElementById('sale-delivery').addEventListener('input', updateSummary);
-      document.getElementById('sale-discount').addEventListener('input', updateSummary);
       document.getElementById('save-sale-btn').addEventListener('click', saveSale);
     },
 

@@ -21,22 +21,27 @@ FB.Calc = (function() {
     monthKey:    function(dateStr) { return String(dateStr).slice(0, 7); },
     daysInMonth: function(y, m) { return new Date(y, m, 0).getDate(); },
 
-    // sale.discountPct (0-100) reduces revenue proportionally
+    // Descuento por producto: item.discountPct (0-100) reduce solo ese producto.
+    // Compatibilidad: ventas viejas con sale.discountPct (descuento global) se respetan.
     saleTotals: function(sale, products) {
       var map = {};
       products.forEach(function(p) { map[p.id] = p; });
+      var items       = sale.items || [];
+      var saleDisc    = Number(sale.discountPct) || 0;
+      var hasItemDisc = items.some(function(i) { return (Number(i.discountPct) || 0) > 0; });
       var revenue = 0, cost = 0;
-      sale.items.forEach(function(item) {
+      items.forEach(function(item) {
         var p = map[item.productId];
         // Usar precio/costo del momento de la venta si está guardado,
         // o caer al catálogo actual (ventas antiguas sin snapshot)
         var unitPrice = (item.unitPrice !== undefined) ? item.unitPrice : (p ? p.price : 0);
         var unitCost  = (item.unitCost  !== undefined) ? item.unitCost  : (p ? p.cost  : 0);
-        revenue += unitPrice * item.qty;
+        var itemDisc  = Number(item.discountPct) || 0;
+        revenue += unitPrice * item.qty * (1 - itemDisc / 100);
         cost    += unitCost  * item.qty;
       });
-      var discountFactor = 1 - (Number(sale.discountPct) || 0) / 100;
-      revenue = revenue * discountFactor;
+      // Legacy: descuento global solo si la venta no usa descuentos por producto
+      if (!hasItemDisc && saleDisc > 0) revenue = revenue * (1 - saleDisc / 100);
       var delivery = Number(sale.delivery) || 0;
       return {
         revenue:     revenue,
@@ -56,13 +61,17 @@ FB.Calc = (function() {
       ms.forEach(function(sale) {
         var t = self.saleTotals(sale, products);
         revenue += t.revenue; cost += t.cost; delivery += t.delivery;
+        var saleDisc    = Number(sale.discountPct) || 0;
+        var hasItemDisc = (sale.items || []).some(function(i) { return (Number(i.discountPct) || 0) > 0; });
         sale.items.forEach(function(item) {
           if (!productTotals[item.productId])
             productTotals[item.productId] = { qty: 0, revenue: 0, cost: 0 };
           var p = products.find(function(x) { return x.id === item.productId; });
           var unitPrice = (item.unitPrice !== undefined) ? item.unitPrice : (p ? p.price : 0);
           var unitCost  = (item.unitCost  !== undefined) ? item.unitCost  : (p ? p.cost  : 0);
-          var df = 1 - (Number(sale.discountPct) || 0) / 100;
+          var itemDisc  = Number(item.discountPct) || 0;
+          // Descuento por producto; si es venta vieja con descuento global, usar ese
+          var df = (!hasItemDisc && saleDisc > 0) ? (1 - saleDisc / 100) : (1 - itemDisc / 100);
           productTotals[item.productId].qty     += item.qty;
           productTotals[item.productId].revenue += unitPrice * item.qty * df;
           productTotals[item.productId].cost    += unitCost  * item.qty;

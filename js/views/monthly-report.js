@@ -129,14 +129,19 @@ FB.MonthlyReport = (function() {
 
     var rows = [['Fecha','Producto','Cantidad','Precio Unit','Descuento %','Ingreso Neto','Costo Unit','Costo Total','Ganancia']];
     sales.sort(function(a, b) { return a.date.localeCompare(b.date); }).forEach(function(sale) {
-      var disc = Number(sale.discountPct) || 0;
+      var saleDisc    = Number(sale.discountPct) || 0;
+      var hasItemDisc = (sale.items || []).some(function(i) { return (Number(i.discountPct) || 0) > 0; });
       sale.items.forEach(function(item) {
         var p = map[item.productId];
         if (!p) return;
-        var unitNetPrice = p.price * (1 - disc / 100);
-        rows.push([sale.date, p.name, item.qty, p.price, disc,
-          unitNetPrice * item.qty, p.cost, p.cost * item.qty,
-          (unitNetPrice - p.cost) * item.qty]);
+        var unitPrice = (item.unitPrice !== undefined) ? item.unitPrice : p.price;
+        var unitCost  = (item.unitCost  !== undefined) ? item.unitCost  : p.cost;
+        var itemDisc  = Number(item.discountPct) || 0;
+        var disc      = (!hasItemDisc && saleDisc > 0) ? saleDisc : itemDisc;
+        var unitNetPrice = unitPrice * (1 - disc / 100);
+        rows.push([sale.date, p.name, item.qty, unitPrice, disc,
+          unitNetPrice * item.qty, unitCost, unitCost * item.qty,
+          (unitNetPrice - unitCost) * item.qty]);
       });
     });
 

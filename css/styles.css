@@ -298,17 +298,57 @@ a { color: inherit; }
 
 .product-row {
   display: flex;
-  align-items: center;
-  justify-content: space-between;
+  flex-direction: column;
   padding: 12px 14px;
   background: var(--white);
   border-radius: 10px;
   margin-bottom: 6px;
   border: 1.5px solid transparent;
   transition: all 0.15s;
+  gap: 8px;
+}
+.product-row-main {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
   gap: 10px;
 }
 .product-row.selected { background: var(--mint-bg); border-color: var(--mint); }
+
+/* ── Descuento por producto (solo promo) ── */
+.product-discount-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding-top: 8px;
+  border-top: 1px dashed var(--border);
+}
+.pd-label {
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--pink);
+}
+.pd-input-wrap {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  background: var(--white);
+  border: 1.5px solid var(--border);
+  border-radius: 8px;
+  padding: 4px 8px;
+}
+.pd-input {
+  width: 48px;
+  border: none;
+  background: transparent;
+  font-size: 14px;
+  font-weight: 700;
+  text-align: right;
+  color: var(--text);
+  outline: none;
+}
+.pd-pct { font-size: 13px; font-weight: 600; color: var(--text-light); }
 .product-info { flex: 1; display: flex; flex-direction: column; gap: 3px; }
 .product-name { font-size: 14px; font-weight: 500; }
 .product-price { font-size: 13px; color: var(--purple); font-weight: 600; }
