@@ -204,7 +204,12 @@ FB.Storage = (function() {
         _cache.sales = _cache.sales.map(function(s) {
           return s.id === id ? Object.assign({}, s, updates) : s;
         });
-        _bakeryRef.collection('sales').doc(id).update(updates);
+        // set+merge en vez de update: no falla si el doc no existe
+        _bakeryRef.collection('sales').doc(id).set(updates, { merge: true })
+          .catch(function(err) {
+            console.error('updateSale error:', err);
+            if (FB.Toast) FB.Toast.show('No se pudo guardar el cambio: ' + err.message, 'error');
+          });
       } else {
         save(KEYS.sales, load(KEYS.sales).map(function(s) {
           return s.id === id ? Object.assign({}, s, updates) : s;

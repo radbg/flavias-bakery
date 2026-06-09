@@ -255,6 +255,17 @@ window.addEventListener('beforeinstallprompt', function(e) {
   }
 });
 
+// ─── Visibilidad de errores (para diagnóstico) ────────────────────────────────
+window.addEventListener('error', function(e) {
+  try { if (FB.Toast) FB.Toast.show('⚠️ ' + (e.message || 'Error'), 'error'); } catch(_) {}
+});
+window.addEventListener('unhandledrejection', function(e) {
+  try {
+    var msg = e.reason && (e.reason.message || e.reason.code) || e.reason || 'Error';
+    if (FB.Toast) FB.Toast.show('⚠️ ' + msg, 'error');
+  } catch(_) {}
+});
+
 // ─── Init ─────────────────────────────────────────────────────────────────────
 document.addEventListener('DOMContentLoaded', function() {
   var firebaseOk = initFirebase();
