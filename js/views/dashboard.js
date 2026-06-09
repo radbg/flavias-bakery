@@ -1,20 +1,37 @@
 var FB = window.FB || {};
 
 FB.Dashboard = (function() {
-  var chart = null;
+  var chart        = null;
   var currentMonth = FB.Calc.monthKey(new Date().toISOString().slice(0, 10));
+  var privacyMode  = localStorage.getItem('fb_privacy') === '1';
 
+  // ── Privacidad ────────────────────────────────────────────────────────────────
+  function togglePrivacy() {
+    privacyMode = !privacyMode;
+    localStorage.setItem('fb_privacy', privacyMode ? '1' : '0');
+    applyPrivacy();
+  }
+
+  function applyPrivacy() {
+    var content = document.getElementById('dash-content');
+    if (!content) return;
+    content.classList.toggle('privacy-on', privacyMode);
+    var hint = document.getElementById('privacy-hint');
+    if (hint) hint.textContent = privacyMode ? '👁 Toca un monto para mostrar' : '🙈 Toca un monto para ocultar';
+  }
+
+  // ── Render principal ─────────────────────────────────────────────────────────
   function refresh() {
     var label = document.getElementById('dash-month-label');
     if (label) label.textContent = FB.Calc.monthLabel(currentMonth);
 
     var products = FB.Storage.getProducts();
-    var sales = FB.Storage.getSales();
+    var sales    = FB.Storage.getSales();
     var expenses = FB.Storage.getExpenses();
-    var curr = FB.Calc.monthSummary(currentMonth, sales, expenses, products);
-    var prev = FB.Calc.monthSummary(FB.Calc.prevMonth(currentMonth), sales, expenses, products);
+    var curr  = FB.Calc.monthSummary(currentMonth, sales, expenses, products);
+    var prev  = FB.Calc.monthSummary(FB.Calc.prevMonth(currentMonth), sales, expenses, products);
     var daily = FB.Calc.dailyRevenue(currentMonth, sales, products);
-    var top = FB.Calc.topProducts(currentMonth, sales, products, 5);
+    var top   = FB.Calc.topProducts(currentMonth, sales, products, 5);
     var maxQty = top.length ? top[0].qty : 1;
 
     var netChange = prev.netProfit !== 0
@@ -35,22 +52,47 @@ FB.Dashboard = (function() {
 
     var content = document.getElementById('dash-content');
     if (!content) return;
+
     content.innerHTML =
+      /* Tarjeta principal — ganancia neta */
       '<div class="stat-card stat-card-big ' + (curr.netProfit >= 0 ? 'positive' : 'negative') + '">' +
         '<div class="stat-label">Ganancia neta del mes</div>' +
-        '<div class="stat-value big">' + FB.Calc.fmt(curr.netProfit) + '</div>' + compareHTML +
+        '<div class="stat-value big privacy-target">' + FB.Calc.fmt(curr.netProfit) + '</div>' +
+        compareHTML +
+        '<div class="privacy-hint" id="privacy-hint"></div>' +
       '</div>' +
+
+      /* Grid de tarjetas secundarias */
       '<div class="stat-grid">' +
-        '<div class="stat-card"><div class="stat-label">Ingresos</div><div class="stat-value">' + FB.Calc.fmt(curr.revenue) + '</div></div>' +
-        '<div class="stat-card"><div class="stat-label">Costo total</div><div class="stat-value">' + FB.Calc.fmt(curr.cost) + '</div></div>' +
-        '<div class="stat-card"><div class="stat-label">Ventas</div><div class="stat-value">' + curr.salesCount + '</div></div>' +
+        '<div class="stat-card">' +
+          '<div class="stat-label">Ingresos</div>' +
+          '<div class="stat-value privacy-target">' + FB.Calc.fmt(curr.revenue) + '</div>' +
+        '</div>' +
+        '<div class="stat-card">' +
+          '<div class="stat-label">Costo total</div>' +
+          '<div class="stat-value privacy-target">' + FB.Calc.fmt(curr.cost) + '</div>' +
+        '</div>' +
+        '<div class="stat-card">' +
+          '<div class="stat-label">Ventas</div>' +
+          '<div class="stat-value privacy-target">' + curr.salesCount + '</div>' +
+        '</div>' +
       '</div>' +
+
       '<div class="card"><div class="card-title">Ingresos por día</div><div class="chart-wrap"><canvas id="revenue-chart"></canvas></div></div>' +
       '<div class="card"><div class="card-title">Top 5 productos del mes</div>' + topHTML + '</div>';
 
     renderChart(daily);
+
+    /* Aplicar modo privacidad y adjuntar listeners de clic */
+    applyPrivacy();
+
+    content.querySelectorAll('.privacy-target').forEach(function(el) {
+      el.style.cursor = 'pointer';
+      el.addEventListener('click', togglePrivacy);
+    });
   }
 
+  // ── Gráfica ──────────────────────────────────────────────────────────────────
   function renderChart(daily) {
     var canvas = document.getElementById('revenue-chart');
     if (!canvas || !window.Chart) return;
@@ -65,7 +107,10 @@ FB.Dashboard = (function() {
       options: {
         responsive: true, maintainAspectRatio: false,
         plugins: { legend: { display: false } },
-        scales: { y: { beginAtZero: true, ticks: { callback: function(v) { return '$' + v; } } }, x: { grid: { display: false } } }
+        scales: {
+          y: { beginAtZero: true, ticks: { callback: function(v) { return '$' + v; } } },
+          x: { grid: { display: false } }
+        }
       }
     });
   }
