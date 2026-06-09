@@ -33,9 +33,6 @@ FB.RegisterSale = (function() {
   function updateSplitDisplay(total) {
     var panel = document.getElementById('split-payment');
     if (!panel || panel.style.display === 'none') return;
-    var cash   = parseFloat(document.getElementById('split-cash').value) || 0;
-    var movil  = Math.max(0, total - cash);
-    document.getElementById('split-movil').textContent = FB.Calc.fmt(movil);
     document.getElementById('split-total').textContent = FB.Calc.fmt(total);
   }
 
@@ -109,7 +106,8 @@ FB.RegisterSale = (function() {
     });
     if (pm === 'mixto') {
       document.getElementById('split-payment').style.display = 'block';
-      document.getElementById('split-cash').value = sale.cashAmount || 0;
+      document.getElementById('split-cash').value  = sale.cashAmount  || 0;
+      document.getElementById('split-movil').value = sale.movilAmount || 0;
     }
 
     renderProductList();
@@ -147,12 +145,15 @@ FB.RegisterSale = (function() {
     var cashAmount    = paymentMethod === 'mixto'
       ? (parseFloat(document.getElementById('split-cash').value) || 0)
       : null;
+    var movilAmount   = paymentMethod === 'mixto'
+      ? (parseFloat(document.getElementById('split-movil').value) || 0)
+      : null;
 
     var saleData = {
       date: date, time: time, items: items,
       delivery: delivery, discountPct: discountPct,
       notes: notes, paymentMethod: paymentMethod,
-      cashAmount: cashAmount
+      cashAmount: cashAmount, movilAmount: movilAmount
     };
 
     if (editingId) {
@@ -201,15 +202,15 @@ FB.RegisterSale = (function() {
         '<div id="split-payment" style="display:none">' +
           '<div class="split-cols">' +
             '<div class="split-col">' +
-              '<span class="split-label">💵 Efectivo</span>' +
+              '<span class="split-label">💵 Efectivo $</span>' +
               '<input type="number" id="split-cash" class="form-input split-input" min="0" step="0.01" placeholder="0.00">' +
             '</div>' +
             '<div class="split-col">' +
-              '<span class="split-label">📱 Pago Móvil</span>' +
-              '<span id="split-movil" class="split-value">$0.00</span>' +
+              '<span class="split-label">📱 Pago Móvil Bs.</span>' +
+              '<input type="number" id="split-movil" class="form-input split-input" min="0" step="1" placeholder="0">' +
             '</div>' +
             '<div class="split-col split-col-total">' +
-              '<span class="split-label">Total</span>' +
+              '<span class="split-label">Total $</span>' +
               '<span id="split-total" class="split-value split-value-total">$0.00</span>' +
             '</div>' +
           '</div>' +
@@ -256,18 +257,6 @@ FB.RegisterSale = (function() {
         });
       });
 
-      // Calcular pago móvil cuando cambia el efectivo
-      container.addEventListener('input', function(e) {
-        if (e.target.id === 'split-cash') {
-          var products    = FB.Storage.getProducts();
-          var delivery    = parseFloat(document.getElementById('sale-delivery').value)  || 0;
-          var discountPct = parseFloat(document.getElementById('sale-discount').value)  || 0;
-          var items = Object.keys(quantities).filter(function(id) { return quantities[id] > 0; })
-            .map(function(id) { return { productId: id, qty: quantities[id] }; });
-          var t = FB.Calc.saleTotals({ items: items, delivery: delivery, discountPct: discountPct }, products);
-          updateSplitDisplay(t.net);
-        }
-      });
 
       // Si viene de historial con editSaleId
       if (params.editSaleId) {

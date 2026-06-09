@@ -163,9 +163,18 @@ FB.History = (function() {
     var timeStr = sale.time ? ' a las ' + FB.Calc.fmt12h(sale.time) : '';
     var pmFull  = PAYMENT_FULL_LABELS[sale.paymentMethod] || '💵 Efectivo';
 
+    var mixtoDetail = '';
+    if (sale.paymentMethod === 'mixto') {
+      mixtoDetail = '<div class="detail-mixto-row">' +
+        (sale.cashAmount  ? '<span>💵 $' + Number(sale.cashAmount).toFixed(2) + ' efectivo</span>'   : '') +
+        (sale.movilAmount ? '<span>📱 Bs. ' + Number(sale.movilAmount).toLocaleString('es-VE') + ' pago móvil</span>' : '') +
+      '</div>';
+    }
+
     var html =
       '<h3 class="modal-title">' + dateStr + timeStr + '</h3>' +
       '<div class="detail-payment-badge">' + pmFull + '</div>' +
+      mixtoDetail +
       (sale.discountPct > 0 ? '<div class="alert alert-info" style="margin-bottom:12px">Descuento aplicado: ' + sale.discountPct + '%</div>' : '') +
       '<table class="detail-table">' +
         '<thead><tr><th>Producto</th><th class="text-center">Cant</th><th class="text-right">P.Unit</th><th class="text-right">Total</th></tr></thead>' +
