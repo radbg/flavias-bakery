@@ -4,10 +4,11 @@ FB.Storage = (function() {
 
   // ── Modo local (localStorage) — fallback cuando no hay Firebase ──────────────
   var KEYS = {
-    products:   'fb_products',
-    sales:      'fb_sales',
-    expenses:   'fb_expenses',
-    fixedCosts: 'fb_fixed_costs'
+    products:      'fb_products',
+    sales:         'fb_sales',
+    expenses:      'fb_expenses',
+    fixedCosts:    'fb_fixed_costs',
+    zelleExpenses: 'fb_zelle_expenses'
   };
 
   function load(key) {
@@ -26,7 +27,7 @@ FB.Storage = (function() {
   var _onReadyCbs   = [];     // callbacks que se disparan una sola vez al cargar datos
 
   // Caché en memoria — lectura siempre instantánea y sin bloques async
-  var _cache = { products: [], sales: [], expenses: [], fixedCosts: {} };
+  var _cache = { products: [], sales: [], expenses: [], fixedCosts: {}, zelleExpenses: [] };
 
   function _notify(isFirst) {
     if (isFirst) {
@@ -92,6 +93,16 @@ FB.Storage = (function() {
           return Object.assign({ id: d.id }, d.data());
         });
         save(KEYS.expenses, _cache.expenses);
+        if (_ready) _notify();
+      });
+
+    // Escuchar gastos Zelle manuales (subcolección)
+    _bakeryRef.collection('zelleExpenses')
+      .onSnapshot(function(snap) {
+        _cache.zelleExpenses = snap.docs.map(function(d) {
+          return Object.assign({ id: d.id }, d.data());
+        });
+        save(KEYS.zelleExpenses, _cache.zelleExpenses);
         if (_ready) _notify();
       });
   }
@@ -267,6 +278,31 @@ FB.Storage = (function() {
         var all = loadObj(KEYS.fixedCosts);
         all[monthStr] = Number(amount) || 0;
         save(KEYS.fixedCosts, all);
+      }
+    },
+
+    // ── Zelle Expenses ──────────────────────────────────────────────────────────
+    getZelleExpenses: function() {
+      return isFirestore() ? _cache.zelleExpenses : load(KEYS.zelleExpenses);
+    },
+    addZelleExpense: function(e) {
+      e.id = crypto.randomUUID();
+      if (isFirestore()) {
+        _cache.zelleExpenses.push(e);
+        _bakeryRef.collection('zelleExpenses').doc(e.id).set(e);
+      } else {
+        var arr = load(KEYS.zelleExpenses);
+        arr.push(e);
+        save(KEYS.zelleExpenses, arr);
+      }
+      return e;
+    },
+    deleteZelleExpense: function(id) {
+      if (isFirestore()) {
+        _cache.zelleExpenses = _cache.zelleExpenses.filter(function(e) { return e.id !== id; });
+        _bakeryRef.collection('zelleExpenses').doc(id).delete();
+      } else {
+        save(KEYS.zelleExpenses, load(KEYS.zelleExpenses).filter(function(e) { return e.id !== id; }));
       }
     },
 

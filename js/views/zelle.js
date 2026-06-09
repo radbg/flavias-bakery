@@ -3,10 +3,9 @@ var FB = window.FB || {};
 FB.Zelle = (function() {
   var currentMonth = FB.Calc.monthKey(new Date().toISOString().slice(0, 10));
 
-  function refresh() {
-    var label = document.getElementById('zelle-month-label');
-    if (label) label.textContent = FB.Calc.monthLabel(currentMonth);
+  // ── Helpers ──────────────────────────────────────────────────────────────────
 
+  function getSalesForMonth() {
     var products = FB.Storage.getProducts();
     var sales = FB.Storage.getSales()
       .filter(function(s) {
@@ -17,28 +16,62 @@ FB.Zelle = (function() {
         var bKey = b.date + 'T' + (b.time || '00:00');
         return bKey.localeCompare(aKey);
       });
+    return { sales: sales, products: products };
+  }
 
-    var list    = document.getElementById('zelle-list');
-    var summary = document.getElementById('zelle-summary');
+  function getExpensesForMonth() {
+    return FB.Storage.getZelleExpenses()
+      .filter(function(e) { return e.date && e.date.startsWith(currentMonth); })
+      .sort(function(a, b) { return b.date.localeCompare(a.date); });
+  }
+
+  // ── Render principal ─────────────────────────────────────────────────────────
+
+  function refresh() {
+    var monthLabel = document.getElementById('zelle-month-label');
+    if (monthLabel) monthLabel.textContent = FB.Calc.monthLabel(currentMonth);
+
+    var data     = getSalesForMonth();
+    var sales    = data.sales;
+    var products = data.products;
+    var expenses = getExpensesForMonth();
+
+    // ── Totales ──────────────────────────────────────────────────────────────
+    var totalCobrado = 0;
+    sales.forEach(function(sale) {
+      var t = FB.Calc.saleTotals(sale, products);
+      totalCobrado += t.revenue + (sale.delivery || 0);
+    });
+
+    var totalGastos = 0;
+    expenses.forEach(function(e) { totalGastos += Number(e.amount) || 0; });
+
+    var balance = totalCobrado - totalGastos;
+
+    // ── Summary card ─────────────────────────────────────────────────────────
+    var summaryEl = document.getElementById('zelle-summary');
+    if (summaryEl) {
+      summaryEl.style.display = 'block';
+      document.getElementById('zelle-cobrado').textContent = FB.Calc.fmt(totalCobrado);
+      document.getElementById('zelle-gastos-total').textContent = FB.Calc.fmt(totalGastos);
+      document.getElementById('zelle-balance').textContent = FB.Calc.fmt(balance);
+      document.getElementById('zelle-balance').style.color = balance >= 0 ? '#4ade80' : '#f87171';
+    }
+
+    // ── Ventas Zelle ─────────────────────────────────────────────────────────
+    renderSales(sales, products, totalCobrado);
+
+    // ── Gastos Zelle ─────────────────────────────────────────────────────────
+    renderExpenses(expenses);
+  }
+
+  function renderSales(sales, products, totalCobrado) {
+    var list = document.getElementById('zelle-list');
     if (!list) return;
 
     if (!sales.length) {
       list.innerHTML = '<div class="empty-state"><p>No hay pagos por Zelle este mes</p></div>';
-      if (summary) summary.style.display = 'none';
       return;
-    }
-
-    // Calcular total del mes
-    var totalMes = 0;
-    sales.forEach(function(sale) {
-      var t = FB.Calc.saleTotals(sale, products);
-      totalMes += t.revenue + (sale.delivery || 0);
-    });
-
-    if (summary) {
-      summary.style.display = 'block';
-      document.getElementById('zelle-total').textContent = FB.Calc.fmt(totalMes);
-      document.getElementById('zelle-count').textContent = sales.length + ' pago' + (sales.length !== 1 ? 's' : '');
     }
 
     // Agrupar por día
@@ -47,7 +80,6 @@ FB.Zelle = (function() {
       if (!byDay[sale.date]) byDay[sale.date] = [];
       byDay[sale.date].push(sale);
     });
-
     var days = Object.keys(byDay).sort(function(a, b) { return b.localeCompare(a); });
 
     list.innerHTML = days.map(function(date) {
@@ -89,13 +121,89 @@ FB.Zelle = (function() {
       '</div>';
     }).join('');
 
-    // Click en fila abre detalle del historial
+    // Click en fila abre detalle
     list.querySelectorAll('.zelle-row').forEach(function(row) {
       row.addEventListener('click', function() {
         showDetail(row.dataset.id, products);
       });
     });
   }
+
+  function renderExpenses(expenses) {
+    var container = document.getElementById('zelle-expenses-list');
+    if (!container) return;
+
+    if (!expenses.length) {
+      container.innerHTML = '<p class="zelle-expenses-empty">Sin gastos registrados este mes</p>';
+      return;
+    }
+
+    container.innerHTML = expenses.map(function(e) {
+      var dateObj = new Date(e.date + 'T00:00:00');
+      var dateStr = dateObj.toLocaleDateString('es-ES', { day: 'numeric', month: 'short' });
+      return '<div class="zelle-expense-row" data-id="' + e.id + '">' +
+        '<div class="zelle-expense-left">' +
+          '<span class="zelle-expense-date">' + dateStr + '</span>' +
+          '<span class="zelle-expense-desc">' + escHtml(e.description || 'Sin descripción') + '</span>' +
+        '</div>' +
+        '<div class="zelle-expense-right">' +
+          '<span class="zelle-expense-amount">' + FB.Calc.fmt(Number(e.amount) || 0) + '</span>' +
+          '<button class="zelle-expense-del" data-id="' + e.id + '" title="Eliminar">🗑</button>' +
+        '</div>' +
+      '</div>';
+    }).join('');
+
+    container.querySelectorAll('.zelle-expense-del').forEach(function(btn) {
+      btn.addEventListener('click', function(ev) {
+        ev.stopPropagation();
+        var id = btn.dataset.id;
+        FB.Modal.confirm('¿Eliminar este gasto?', function() {
+          FB.Storage.deleteZelleExpense(id);
+          FB.Toast.show('Gasto eliminado');
+          refresh();
+        });
+      });
+    });
+  }
+
+  function escHtml(str) {
+    return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  }
+
+  // ── Formulario agregar gasto ─────────────────────────────────────────────────
+
+  function showAddExpenseForm() {
+    var formEl = document.getElementById('zelle-add-form');
+    if (!formEl) return;
+    formEl.style.display = formEl.style.display === 'none' ? 'block' : 'none';
+    if (formEl.style.display === 'block') {
+      document.getElementById('ze-amount').focus();
+    }
+  }
+
+  function saveExpense() {
+    var amountEl = document.getElementById('ze-amount');
+    var descEl   = document.getElementById('ze-desc');
+    var amount   = parseFloat(amountEl.value) || 0;
+    var desc     = descEl.value.trim();
+
+    if (amount <= 0) { FB.Toast.show('Ingresa un monto válido', 'error'); return; }
+    if (!desc)       { FB.Toast.show('Agrega una descripción', 'error'); return; }
+
+    FB.Storage.addZelleExpense({
+      date:        FB.Calc.today(),
+      amount:      amount,
+      description: desc
+    });
+
+    amountEl.value = '';
+    descEl.value   = '';
+    document.getElementById('zelle-add-form').style.display = 'none';
+    FB.Toast.show('Gasto registrado ✅');
+    refresh();
+  }
+
+  // ── Modal detalle de venta ───────────────────────────────────────────────────
 
   function showDetail(saleId, products) {
     var sale = FB.Storage.getSales().find(function(s) { return s.id === saleId; });
@@ -140,11 +248,14 @@ FB.Zelle = (function() {
     overlay.querySelector('#det-cancel').addEventListener('click', function() { FB.Modal.close(); });
   }
 
+  // ── Render de la vista ───────────────────────────────────────────────────────
+
   return {
     render: function(container) {
       currentMonth = FB.Calc.monthKey(new Date().toISOString().slice(0, 10));
 
       container.innerHTML =
+        /* Encabezado con navegación de mes */
         '<div class="view-header">' +
           '<div class="month-nav">' +
             '<button class="month-btn" id="zelle-prev">‹</button>' +
@@ -153,14 +264,49 @@ FB.Zelle = (function() {
           '</div>' +
         '</div>' +
 
-        '<div id="zelle-summary" class="zelle-summary-card" style="display:none">' +
-          '<div class="zelle-summary-label">Total Zelle del mes</div>' +
-          '<div class="zelle-summary-amount" id="zelle-total">$0.00</div>' +
-          '<div class="zelle-summary-count" id="zelle-count"></div>' +
+        /* Tarjeta resumen: cobrado / gastos / balance */
+        '<div id="zelle-summary" class="zelle-summary-card">' +
+          '<div class="zelle-summary-cols">' +
+            '<div class="zelle-summary-col">' +
+              '<span class="zelle-summary-label">Cobrado</span>' +
+              '<span class="zelle-summary-amount" id="zelle-cobrado">$0.00</span>' +
+            '</div>' +
+            '<div class="zelle-summary-col">' +
+              '<span class="zelle-summary-label">Gastos</span>' +
+              '<span class="zelle-summary-amount" id="zelle-gastos-total">$0.00</span>' +
+            '</div>' +
+            '<div class="zelle-summary-col">' +
+              '<span class="zelle-summary-label">Balance</span>' +
+              '<span class="zelle-summary-amount" id="zelle-balance">$0.00</span>' +
+            '</div>' +
+          '</div>' +
         '</div>' +
 
-        '<div id="zelle-list"></div>';
+        /* Sección ventas Zelle */
+        '<div class="zelle-section-header">' +
+          '<span class="zelle-section-title">🏦 Ventas Zelle</span>' +
+        '</div>' +
+        '<div id="zelle-list"></div>' +
 
+        /* Sección gastos Zelle manuales */
+        '<div class="zelle-section-header">' +
+          '<span class="zelle-section-title">💸 Gastos Zelle</span>' +
+          '<button class="zelle-add-btn" id="zelle-add-expense-btn">+ Agregar</button>' +
+        '</div>' +
+
+        /* Formulario inline para agregar gasto */
+        '<div id="zelle-add-form" style="display:none">' +
+          '<div class="zelle-form-row">' +
+            '<input type="number" id="ze-amount" class="form-input" placeholder="Monto $" min="0" step="0.01" style="flex:1">' +
+            '<input type="text"   id="ze-desc"   class="form-input" placeholder="Descripción" style="flex:2">' +
+            '<button class="btn btn-primary ze-save-btn" id="ze-save">Guardar</button>' +
+            '<button class="btn btn-ghost   ze-cancel-btn" id="ze-cancel">✕</button>' +
+          '</div>' +
+        '</div>' +
+
+        '<div id="zelle-expenses-list"></div>';
+
+      /* Navegación de mes */
       document.getElementById('zelle-prev').addEventListener('click', function() {
         currentMonth = FB.Calc.prevMonth(currentMonth);
         refresh();
@@ -168,6 +314,18 @@ FB.Zelle = (function() {
       document.getElementById('zelle-next').addEventListener('click', function() {
         currentMonth = FB.Calc.nextMonth(currentMonth);
         refresh();
+      });
+
+      /* Botón agregar gasto */
+      document.getElementById('zelle-add-expense-btn').addEventListener('click', showAddExpenseForm);
+      document.getElementById('ze-save').addEventListener('click', saveExpense);
+      document.getElementById('ze-cancel').addEventListener('click', function() {
+        document.getElementById('zelle-add-form').style.display = 'none';
+      });
+
+      /* Enter en el campo descripción guarda */
+      document.getElementById('ze-desc').addEventListener('keydown', function(e) {
+        if (e.key === 'Enter') saveExpense();
       });
 
       refresh();

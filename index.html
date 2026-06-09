@@ -111,26 +111,135 @@
       background: linear-gradient(135deg, #5F56AF, #4F46A0);
       color: #fff;
       border-radius: 16px;
-      padding: 20px;
+      padding: 16px 12px;
       margin: 0 0 16px 0;
+    }
+    .zelle-summary-cols {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 4px;
       text-align: center;
     }
+    .zelle-summary-col {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
     .zelle-summary-label {
-      font-size: 0.82rem;
-      opacity: 0.85;
-      margin-bottom: 4px;
+      font-size: 0.72rem;
+      opacity: 0.8;
+      text-transform: uppercase;
+      letter-spacing: 0.3px;
     }
     .zelle-summary-amount {
-      font-size: 2rem;
+      font-size: 1.1rem;
       font-weight: 700;
-      letter-spacing: -0.5px;
-    }
-    .zelle-summary-count {
-      font-size: 0.8rem;
-      opacity: 0.75;
-      margin-top: 4px;
+      letter-spacing: -0.3px;
     }
 
+    /* ── Encabezado de sección dentro de Zelle ── */
+    .zelle-section-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 10px 4px 6px;
+      margin-bottom: 6px;
+      border-bottom: 2px solid var(--border, #e0e0e0);
+    }
+    .zelle-section-title {
+      font-size: 0.9rem;
+      font-weight: 700;
+      color: var(--text, #333);
+    }
+    .zelle-add-btn {
+      background: #5F56AF;
+      color: #fff;
+      border: none;
+      border-radius: 20px;
+      padding: 5px 14px;
+      font-size: 0.8rem;
+      font-weight: 600;
+      cursor: pointer;
+    }
+    .zelle-add-btn:active { opacity: 0.8; }
+
+    /* ── Formulario inline de gasto ── */
+    #zelle-add-form {
+      background: var(--surface, #f8f8f8);
+      border-radius: 12px;
+      padding: 12px;
+      margin-bottom: 12px;
+    }
+    .zelle-form-row {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+    .ze-save-btn {
+      padding: 8px 14px !important;
+      font-size: 0.82rem !important;
+      white-space: nowrap;
+    }
+    .ze-cancel-btn {
+      padding: 8px 10px !important;
+      font-size: 0.82rem !important;
+    }
+
+    /* ── Filas de gastos Zelle ── */
+    .zelle-expense-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 10px 8px;
+      border-radius: 10px;
+      margin-bottom: 4px;
+      background: var(--white, #fff);
+      border: 1px solid var(--border, #e8e8e8);
+    }
+    .zelle-expense-left {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+    .zelle-expense-date {
+      font-size: 0.72rem;
+      color: var(--text-muted, #888);
+      text-transform: capitalize;
+    }
+    .zelle-expense-desc {
+      font-size: 0.88rem;
+      color: var(--text, #333);
+      font-weight: 500;
+    }
+    .zelle-expense-right {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .zelle-expense-amount {
+      font-size: 0.95rem;
+      font-weight: 700;
+      color: #e05a5a;
+    }
+    .zelle-expense-del {
+      background: none;
+      border: none;
+      cursor: pointer;
+      font-size: 1rem;
+      padding: 4px;
+      border-radius: 6px;
+      opacity: 0.6;
+    }
+    .zelle-expense-del:hover, .zelle-expense-del:active { opacity: 1; }
+    .zelle-expenses-empty {
+      color: var(--text-muted, #888);
+      font-size: 0.85rem;
+      text-align: center;
+      padding: 12px 0;
+    }
+
+    /* ── Filas de ventas Zelle ── */
     .zelle-day-group {
       margin-bottom: 16px;
     }
