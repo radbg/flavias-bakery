@@ -402,6 +402,15 @@ document.addEventListener('DOMContentLoaded', function() {
   });
 
   if ('serviceWorker' in navigator) {
-    navigator.serviceWorker.register('service-worker.js');
+    // Auto-recargar cuando un service worker nuevo toma el control
+    var swRefreshing = false;
+    navigator.serviceWorker.addEventListener('controllerchange', function() {
+      if (swRefreshing) return;
+      swRefreshing = true;
+      window.location.reload();
+    });
+    navigator.serviceWorker.register('service-worker.js').then(function(reg) {
+      if (reg && reg.update) reg.update();   // chequear si hay versión nueva
+    });
   }
 });

@@ -1,4 +1,4 @@
-const CACHE_NAME = 'flavias-bakery-v12';
+const CACHE_NAME = 'flavias-bakery-v13';
 
 const CDN_URLS = [
   'https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js',
@@ -76,9 +76,10 @@ self.addEventListener('fetch', function(e) {
     return;
   }
 
-  // Archivos propios → network-first con fallback a caché (ya pre-cacheados)
+  // Archivos propios → network-first SALTANDO la caché HTTP del navegador
+  // (evita que GitHub Pages sirva JS/CSS viejo), con fallback a caché offline
   e.respondWith(
-    fetch(e.request).then(function(res) {
+    fetch(e.request, { cache: 'no-store' }).then(function(res) {
       var clone = res.clone();
       caches.open(CACHE_NAME).then(function(c) { c.put(e.request, clone); });
       return res;
