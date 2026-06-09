@@ -1,4 +1,4 @@
-const CACHE_NAME = 'flavias-bakery-v14';
+const CACHE_NAME = 'flavias-bakery-v15';
 
 const CDN_URLS = [
   'https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js',
@@ -60,15 +60,35 @@ self.addEventListener('activate', function(e) {
 });
 
 self.addEventListener('fetch', function(e) {
-  var url = e.request.url;
+  var req = e.request;
+  var url = req.url;
 
-  // CDN → cache-first
-  if (url.includes('jsdelivr.net') || url.includes('fonts.google') || url.includes('gstatic.com') || url.includes('googleapis.com')) {
+  // NO interceptar peticiones que no sean GET (login, escrituras, etc.)
+  if (req.method !== 'GET') return;
+
+  // NO interceptar las APIs de Firebase (Auth/Firestore) — deben ir directo a la red.
+  // Si el SW las cachea, rompe el login y la sincronización.
+  if (url.indexOf('firestore.googleapis.com')          !== -1 ||
+      url.indexOf('identitytoolkit.googleapis.com')     !== -1 ||
+      url.indexOf('securetoken.googleapis.com')         !== -1 ||
+      url.indexOf('firebaseinstallations.googleapis.com')!== -1 ||
+      url.indexOf('firebaseio.com')                     !== -1 ||
+      url.indexOf('firebaseapp.com')                    !== -1 ||
+      url.indexOf('www.googleapis.com')                 !== -1) {
+    return;
+  }
+
+  // CDN de librerías + fuentes + SDK de Firebase → cache-first
+  if (url.indexOf('jsdelivr.net')       !== -1 ||
+      url.indexOf('fonts.googleapis')   !== -1 ||
+      url.indexOf('fonts.gstatic')      !== -1 ||
+      url.indexOf('gstatic.com/firebasejs') !== -1 ||
+      url.indexOf('www.gstatic.com')    !== -1) {
     e.respondWith(
-      caches.match(e.request).then(function(cached) {
-        return cached || fetch(e.request).then(function(res) {
+      caches.match(req).then(function(cached) {
+        return cached || fetch(req).then(function(res) {
           var clone = res.clone();
-          caches.open(CACHE_NAME).then(function(c) { c.put(e.request, clone); });
+          caches.open(CACHE_NAME).then(function(c) { c.put(req, clone); });
           return res;
         });
       })
@@ -79,12 +99,12 @@ self.addEventListener('fetch', function(e) {
   // Archivos propios → network-first SALTANDO la caché HTTP del navegador
   // (evita que GitHub Pages sirva JS/CSS viejo), con fallback a caché offline
   e.respondWith(
-    fetch(e.request, { cache: 'no-store' }).then(function(res) {
+    fetch(req, { cache: 'no-store' }).then(function(res) {
       var clone = res.clone();
-      caches.open(CACHE_NAME).then(function(c) { c.put(e.request, clone); });
+      caches.open(CACHE_NAME).then(function(c) { c.put(req, clone); });
       return res;
     }).catch(function() {
-      return caches.match(e.request);
+      return caches.match(req);
     })
   );
 });

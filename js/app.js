@@ -163,25 +163,22 @@ function startApp(user) {
   var db = firebase.firestore();
   FB.Storage.init(db, user.uid, rerender);
 
-  var started = false;
-  FB.Storage.onReady(function() {
-    if (started) return;
-    started = true;
-
-    // Intentar migración de datos viejos (bakeries → users)
-    migrateOldData(db, user.uid, function() {
-      showApp();
-      seedIfEmpty();
-      navigate('dashboard');
-    });
-  });
-  setTimeout(function() {
-    if (started) return;
-    started = true;
+  var entered = false;
+  function enterApp() {
+    if (entered) return;
+    entered = true;
     showApp();
     seedIfEmpty();
     navigate('dashboard');
-  }, 5000);
+  }
+
+  FB.Storage.onReady(function() {
+    // Intentar migración en segundo plano, pero NO bloquear la entrada a la app
+    try { migrateOldData(db, user.uid, function() {}); } catch (e) { console.error(e); }
+    enterApp();
+  });
+  // Respaldo: si Firestore tarda en responder, entrar igual a los 5s
+  setTimeout(enterApp, 5000);
 }
 
 function migrateOldData(db, userId, done) {
