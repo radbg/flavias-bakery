@@ -171,7 +171,7 @@ FB.History = (function() {
     if (sale.paymentMethod === 'mixto') {
       mixtoDetail = '<div class="detail-mixto-row">' +
         (sale.cashAmount  ? '<span>💵 $' + Number(sale.cashAmount).toFixed(2) + ' efectivo</span>'   : '') +
-        (sale.movilAmount ? '<span>📱 Bs. ' + Number(sale.movilAmount).toLocaleString('es-VE') + ' pago móvil</span>' : '') +
+        (sale.movilAmount ? '<span>📱 $' + Number(sale.movilAmount).toFixed(2) + ' pago móvil</span>' : '') +
       '</div>';
     }
 
