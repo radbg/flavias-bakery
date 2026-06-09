@@ -4,6 +4,7 @@ FB.RegisterSale = (function() {
   var quantities = {};
   var discounts  = {};   // descuento % por producto (solo productos en promoción)
   var editingId  = null;
+  var editingOriginalItems = {};  // ítems originales al editar (preserva precio/costo histórico)
 
   function nowTime() {
     var d = new Date();
@@ -87,7 +88,8 @@ FB.RegisterSale = (function() {
 
   function renderProductList() {
     var products = FB.Storage.getProducts();
-    var active   = products.filter(function(p) { return p.active; });
+    // Mostrar activos + cualquier producto que ya esté en la venta (aunque esté inactivo)
+    var active   = products.filter(function(p) { return p.active || quantities[p.id] > 0; });
     var regular  = active.filter(function(p) { return !p.isSpecial; });
     var specials = active.filter(function(p) { return p.isSpecial; });
     var categories = regular.reduce(function(acc, p) {
@@ -127,9 +129,11 @@ FB.RegisterSale = (function() {
     editingId  = sale.id;
     quantities = {};
     discounts  = {};
+    editingOriginalItems = {};
     (sale.items || []).forEach(function(item) {
       quantities[item.productId] = item.qty;
       if (Number(item.discountPct) > 0) discounts[item.productId] = Number(item.discountPct);
+      editingOriginalItems[item.productId] = item;  // preservar precio/costo originales
     });
     document.getElementById('sale-date').value     = sale.date;
     document.getElementById('sale-time').value     = sale.time || '00:00';
@@ -147,9 +151,21 @@ FB.RegisterSale = (function() {
       document.getElementById('split-movil').value = sale.movilAmount || 0;
     }
 
+    // Marcar visualmente que estamos en modo edición
+    var title = document.querySelector('.view-title');
+    if (title) title.textContent = '✏️ Editar venta';
+    var saveBtn = document.getElementById('save-sale-btn');
+    if (saveBtn) saveBtn.textContent = 'ACTUALIZAR VENTA';
+
     renderProductList();
     updateSummary();
-    FB.Toast.show('Venta cargada para editar', 'info');
+
+    // Subir el scroll para que se vea el formulario en edición
+    var mc = document.getElementById('main-content');
+    if (mc) mc.scrollTop = 0;
+    window.scrollTo(0, 0);
+
+    FB.Toast.show('Venta cargada para editar ✏️', 'info');
   }
 
   function getPaymentMethod() {
@@ -163,12 +179,15 @@ FB.RegisterSale = (function() {
 
     var items = Object.keys(quantities).filter(function(id) { return quantities[id] > 0; })
       .map(function(id) {
-        var p = productMap[id];
+        var p    = productMap[id];
+        var orig = editingId ? editingOriginalItems[id] : null;
+        // Al editar, conservar el precio/costo del momento de la venta;
+        // productos nuevos agregados usan el precio actual del catálogo
         return {
           productId:   id,
           qty:         Number(quantities[id]),
-          unitPrice:   p ? p.price : 0,
-          unitCost:    p ? p.cost  : 0,
+          unitPrice:   (orig && orig.unitPrice !== undefined) ? orig.unitPrice : (p ? p.price : 0),
+          unitCost:    (orig && orig.unitCost  !== undefined) ? orig.unitCost  : (p ? p.cost  : 0),
           discountPct: Number(discounts[id]) || 0
         };
       });
@@ -195,16 +214,18 @@ FB.RegisterSale = (function() {
 
     if (editingId) {
       FB.Storage.updateSale(editingId, saleData);
-      quantities = {}; discounts = {}; editingId = null;
+      quantities = {}; discounts = {}; editingId = null; editingOriginalItems = {};
       FB.Toast.show('¡Venta actualizada! ✅');
       // Volver al historial para que el usuario vea la venta actualizada
       if (window.FB && FB.App) {
         FB.App.navigate('history');
+      } else {
+        FB.RegisterSale.render(document.getElementById('main-content'));
       }
     } else {
       FB.Storage.addSale(saleData);
       FB.Toast.show('¡Venta guardada! 🎉');
-      quantities = {}; discounts = {}; editingId = null;
+      quantities = {}; discounts = {}; editingId = null; editingOriginalItems = {};
       FB.RegisterSale.render(document.getElementById('main-content'));
     }
   }
@@ -215,6 +236,7 @@ FB.RegisterSale = (function() {
       quantities = {};
       discounts  = {};
       editingId  = null;
+      editingOriginalItems = {};
 
       var todayStr = FB.Calc.today();
 

@@ -201,7 +201,8 @@ FB.History = (function() {
     overlay.querySelector('#det-cancel').addEventListener('click', function() { FB.Modal.close(); });
     overlay.querySelector('#det-edit').addEventListener('click', function() {
       FB.Modal.close();
-      if (_navigate) _navigate('register', { editSaleId: saleId });
+      var go = _navigate || (FB.App && FB.App.navigate);
+      if (go) go('register', { editSaleId: saleId });
     });
     overlay.querySelector('#det-delete').addEventListener('click', function() {
       FB.Modal.confirm('¿Eliminar esta venta?', function() {
